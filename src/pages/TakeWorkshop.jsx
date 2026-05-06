@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { workshopsAPI, workshopQuestionsAPI, gradesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { 
+import {
   ArrowLeft,
   CheckCircle,
   Clock,
@@ -10,7 +10,9 @@ import {
   Award,
   RotateCcw,
   Trophy,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ZoomIn,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,6 +29,7 @@ const TakeWorkshop = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
 
   useEffect(() => {
     fetchWorkshopDetails();
@@ -349,16 +352,30 @@ const TakeWorkshop = () => {
                         alt={`Opción ${option}`}
                         className="w-full h-full object-cover"
                       />
-                      
+
                       {/* Option label overlay */}
                       <div className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                        answers[currentQuestion.id] === option 
-                          ? 'bg-primary-600' 
+                        answers[currentQuestion.id] === option
+                          ? 'bg-primary-600'
                           : 'bg-gray-600 bg-opacity-75'
                       }`}>
                         {option}
                       </div>
-                      
+
+                      {/* Zoom button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setModalImage(`http://localhost:5001${imageUrl}`);
+                        }}
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 flex items-center justify-center text-white transition-all"
+                        title="Ver imagen completa"
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </button>
+
                       {/* Selected indicator */}
                       {answers[currentQuestion.id] === option && (
                         <div className="absolute inset-0 bg-primary-600 bg-opacity-10 flex items-center justify-center">
@@ -431,6 +448,29 @@ const TakeWorkshop = () => {
           ))}
         </div>
       </div>
+
+      {/* Image fullscreen modal */}
+      {modalImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-85"
+          onClick={() => setModalImage(null)}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white bg-opacity-20 hover:bg-opacity-40 flex items-center justify-center text-white transition-all"
+            onClick={() => setModalImage(null)}
+            title="Cerrar"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={modalImage}
+            alt="Vista completa"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
