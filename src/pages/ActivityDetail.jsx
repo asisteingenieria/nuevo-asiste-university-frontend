@@ -509,7 +509,7 @@ const ActivityDetail = () => {
 
                           {block.block_type === 'image' && block.content_url && (
                             <img
-                              src={`http://localhost:5001${block.content_url}`}
+                              src={`${block.content_url}`}
                               alt="Contenido"
                               className="max-w-md rounded-lg"
                             />
@@ -517,7 +517,7 @@ const ActivityDetail = () => {
 
                           {block.block_type === 'video' && block.content_url && (
                             <video controls className="max-w-md rounded-lg">
-                              <source src={`http://localhost:5001${block.content_url}`} type="video/mp4" />
+                              <source src={`${block.content_url}`} type="video/mp4" />
                               Tu navegador no soporta el elemento de video.
                             </video>
                           )}

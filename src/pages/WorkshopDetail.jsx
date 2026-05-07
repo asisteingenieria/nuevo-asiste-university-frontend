@@ -233,7 +233,7 @@ const WorkshopDetail = () => {
         {questionData[optionKey] && (
           <div className="mt-2">
             <img
-              src={`http://localhost:5001${questionData[optionKey]}`}
+              src={`${questionData[optionKey]}`}
               alt={`Opción ${optionLabel}`}
               className="max-w-full h-32 object-contain rounded"
             />
@@ -427,7 +427,7 @@ const WorkshopDetail = () => {
                               
                               {question[imageKey] ? (
                                 <img
-                                  src={`http://localhost:5001${question[imageKey]}`}
+                                  src={`${question[imageKey]}`}
                                   alt={`Opción ${option}`}
                                   className="w-full h-24 object-contain rounded"
                                 />

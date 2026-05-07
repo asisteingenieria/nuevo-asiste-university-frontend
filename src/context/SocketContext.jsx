@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-import { SERVER_URL } from '../services/api';
 import toast from 'react-hot-toast';
 
 const SocketContext = createContext();
@@ -23,7 +22,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       // Initialize socket connection
-      const newSocket = io('http://localhost:5001', {
+      const newSocket = io(window.location.origin, {
         withCredentials: true,
       });
 

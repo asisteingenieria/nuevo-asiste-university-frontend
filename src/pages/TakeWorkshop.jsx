@@ -348,7 +348,7 @@ const TakeWorkshop = () => {
                   }`}>
                     <div className="aspect-square relative">
                       <img
-                        src={`http://localhost:5001${imageUrl}`}
+                        src={`${imageUrl}`}
                         alt={`Opción ${option}`}
                         className="w-full h-full object-cover"
                       />
@@ -368,7 +368,7 @@ const TakeWorkshop = () => {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setModalImage(`http://localhost:5001${imageUrl}`);
+                          setModalImage(`${imageUrl}`);
                         }}
                         className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 flex items-center justify-center text-white transition-all"
                         title="Ver imagen completa"
