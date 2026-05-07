@@ -7,7 +7,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Upload,
   Image,
   Type,
   Settings,
@@ -19,10 +18,10 @@ import toast from 'react-hot-toast';
 
 const INITIAL_QUESTION = {
   question: '',
-  option_a: '',
-  option_b: '',
-  option_c: '',
-  option_d: '',
+  option_a_text: '',
+  option_b_text: '',
+  option_c_text: '',
+  option_d_text: '',
   option_a_image: '',
   option_b_image: '',
   option_c_image: '',
@@ -75,7 +74,6 @@ const WorkshopDetail = () => {
       toast.success('Imagen subida exitosamente');
     } catch (error) {
       toast.error('Error al subir imagen');
-      console.error('Upload error:', error);
     } finally {
       setUploading(false);
     }
@@ -97,10 +95,10 @@ const WorkshopDetail = () => {
         const q = questions[i];
         await workshopQuestionsAPI.update(q.id, {
           question: q.question,
-          option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d,
+          option_a_text: q.option_a_text,
+          option_b_text: q.option_b_text,
+          option_c_text: q.option_c_text,
+          option_d_text: q.option_d_text,
           option_a_image: q.option_a_image,
           option_b_image: q.option_b_image,
           option_c_image: q.option_c_image,
@@ -148,17 +146,17 @@ const WorkshopDetail = () => {
     setEditingQuestion(question);
     if (question) {
       setOptionTypes({
-        A: detectOptionType(question.option_a, question.option_a_image),
-        B: detectOptionType(question.option_b, question.option_b_image),
-        C: detectOptionType(question.option_c, question.option_c_image),
-        D: detectOptionType(question.option_d, question.option_d_image),
+        A: detectOptionType(question.option_a_text, question.option_a_image),
+        B: detectOptionType(question.option_b_text, question.option_b_image),
+        C: detectOptionType(question.option_c_text, question.option_c_image),
+        D: detectOptionType(question.option_d_text, question.option_d_image),
       });
       setQuestionData({
         question: question.question,
-        option_a: question.option_a || '',
-        option_b: question.option_b || '',
-        option_c: question.option_c || '',
-        option_d: question.option_d || '',
+        option_a_text: question.option_a_text || '',
+        option_b_text: question.option_b_text || '',
+        option_c_text: question.option_c_text || '',
+        option_d_text: question.option_d_text || '',
         option_a_image: question.option_a_image || '',
         option_b_image: question.option_b_image || '',
         option_c_image: question.option_c_image || '',
@@ -182,7 +180,7 @@ const WorkshopDetail = () => {
 
   const setOptionType = (letter, type) => {
     setOptionTypes(prev => ({ ...prev, [letter]: type }));
-    const textKey = `option_${letter.toLowerCase()}`;
+    const textKey = `option_${letter.toLowerCase()}_text`;
     const imageKey = `option_${letter.toLowerCase()}_image`;
     if (type === 'text') {
       setQuestionData(prev => ({ ...prev, [imageKey]: '' }));
@@ -204,7 +202,7 @@ const WorkshopDetail = () => {
   };
 
   const optionHasValue = (letter) => {
-    const textKey = `option_${letter.toLowerCase()}`;
+    const textKey = `option_${letter.toLowerCase()}_text`;
     const imageKey = `option_${letter.toLowerCase()}_image`;
     return !!(questionData[textKey] || questionData[imageKey]);
   };
@@ -265,7 +263,6 @@ const WorkshopDetail = () => {
                 {uploading ? 'Subiendo...' : `Subir imagen para opción ${letter}`}
               </span>
             </label>
-
             {questionData[imageKey] && (
               <div className="mt-2">
                 <img
@@ -397,10 +394,7 @@ const WorkshopDetail = () => {
                   {questions.reduce((sum, q) => sum + q.points, 0)}/100 puntos
                 </span>
               </div>
-              <button
-                onClick={redistributePointsWorkshop}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
+              <button onClick={redistributePointsWorkshop} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 🎯 Auto-distribuir puntos
               </button>
             </div>
@@ -432,7 +426,7 @@ const WorkshopDetail = () => {
                       <div className="grid grid-cols-2 gap-4 ml-8">
                         {['A', 'B', 'C', 'D'].map((letter) => {
                           const imageKey = `option_${letter.toLowerCase()}_image`;
-                          const textKey = `option_${letter.toLowerCase()}`;
+                          const textKey = `option_${letter.toLowerCase()}_text`;
                           const isCorrect = question.correct_answer === letter;
                           return (
                             <div key={letter} className={`border rounded-lg p-3 ${isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
@@ -445,17 +439,13 @@ const WorkshopDetail = () => {
                                 {isCorrect && <CheckCircle className="h-4 w-4 text-green-500" />}
                               </div>
                               {question[imageKey] ? (
-                                <img
-                                  src={question[imageKey]}
-                                  alt={`Opción ${letter}`}
-                                  className="w-full h-24 object-contain rounded"
-                                />
+                                <img src={question[imageKey]} alt={`Opción ${letter}`} className="w-full h-24 object-contain rounded" />
                               ) : question[textKey] ? (
-                                <div className="w-full min-h-[4rem] flex items-center justify-center bg-gray-50 rounded p-2">
+                                <div className="w-full min-h-[3rem] flex items-center justify-center bg-gray-50 rounded p-2">
                                   <span className="text-sm text-gray-800 text-center">{question[textKey]}</span>
                                 </div>
                               ) : (
-                                <div className="w-full h-16 bg-gray-100 rounded flex items-center justify-center">
+                                <div className="w-full h-12 bg-gray-100 rounded flex items-center justify-center">
                                   <Image className="h-5 w-5 text-gray-300" />
                                 </div>
                               )}
@@ -509,10 +499,10 @@ const WorkshopDetail = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderOptionInput('option_a', 'option_a_image', 'A')}
-                {renderOptionInput('option_b', 'option_b_image', 'B')}
-                {renderOptionInput('option_c', 'option_c_image', 'C')}
-                {renderOptionInput('option_d', 'option_d_image', 'D')}
+                {renderOptionInput('option_a_text', 'option_a_image', 'A')}
+                {renderOptionInput('option_b_text', 'option_b_image', 'B')}
+                {renderOptionInput('option_c_text', 'option_c_image', 'C')}
+                {renderOptionInput('option_d_text', 'option_d_image', 'D')}
               </div>
 
               <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
