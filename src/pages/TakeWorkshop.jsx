@@ -342,31 +342,47 @@ const TakeWorkshop = () => {
                     className="sr-only"
                   />
 
-                  {imageUrl ? (
-                    /* Image option */
-                    <div className={`border-2 rounded-lg overflow-hidden ${
-                      isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <div className="aspect-square relative">
-                        <img
-                          src={imageUrl}
-                          alt={`Opción ${option}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                          isSelected ? 'bg-primary-600' : 'bg-gray-600 bg-opacity-75'
+                  <div className={`border-2 rounded-lg overflow-hidden ${
+                    isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
+                  }`}>
+                    {/* Text label row (shown if text exists) */}
+                    {textValue && (
+                      <div className={`flex items-center gap-2 px-3 py-2 ${isSelected ? 'bg-primary-50' : 'bg-gray-50'} border-b border-gray-200`}>
+                        <div className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-bold text-white text-sm ${
+                          isSelected ? 'bg-primary-600' : 'bg-gray-500'
                         }`}>
                           {option}
                         </div>
+                        <span className="font-medium text-gray-900 text-sm flex-1">{textValue}</span>
+                        {isSelected && <CheckCircle className="h-4 w-4 text-primary-600 shrink-0" />}
+                      </div>
+                    )}
+
+                    {/* Image (shown if image exists) */}
+                    {imageUrl && (
+                      <div className="relative">
+                        {!textValue && (
+                          <div className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold z-10 ${
+                            isSelected ? 'bg-primary-600' : 'bg-gray-600 bg-opacity-75'
+                          }`}>
+                            {option}
+                          </div>
+                        )}
+                        <img
+                          src={imageUrl}
+                          alt={`Opción ${option}`}
+                          className="w-full object-cover"
+                          style={{ maxHeight: '220px' }}
+                        />
                         <button
                           type="button"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModalImage(imageUrl); }}
-                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 flex items-center justify-center text-white transition-all"
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 flex items-center justify-center text-white transition-all z-10"
                           title="Ver imagen completa"
                         >
                           <ZoomIn className="h-4 w-4" />
                         </button>
-                        {isSelected && (
+                        {isSelected && !textValue && (
                           <div className="absolute inset-0 bg-primary-600 bg-opacity-10 flex items-center justify-center">
                             <div className="bg-primary-600 rounded-full p-2">
                               <CheckCircle className="h-6 w-6 text-white" />
@@ -374,24 +390,11 @@ const TakeWorkshop = () => {
                           </div>
                         )}
                       </div>
-                      <div className="p-3 text-center">
-                        <span className="font-medium text-gray-900">{getOptionLabel(option)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Text option */
-                    <div className={`border-2 rounded-lg p-4 flex items-center gap-3 min-h-[4rem] ${
-                      isSelected ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}>
-                      <div className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center font-bold text-white ${
-                        isSelected ? 'bg-primary-600' : 'bg-gray-400'
-                      }`}>
-                        {option}
-                      </div>
-                      <span className="text-gray-900 flex-1">{textValue}</span>
-                      {isSelected && <CheckCircle className="h-5 w-5 text-primary-600 shrink-0" />}
-                    </div>
-                  )}
+                    )}
+
+                    {/* Only text, no image — add bottom padding */}
+                    {textValue && !imageUrl && <div className="h-2" />}
+                  </div>
                 </label>
               );
             })}
