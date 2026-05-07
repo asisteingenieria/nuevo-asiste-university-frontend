@@ -186,6 +186,7 @@ const WorkshopDetail = () => {
   };
 
   const isAnyUploading = Object.values(uploading).some(Boolean);
+  const filledOptions = ['A', 'B', 'C', 'D'].filter(optionHasValue);
 
   // Each option has a text field + image upload, both optional, but at least one required
   const renderOptionInput = (textKey, imageKey, letter) => (
@@ -401,6 +402,7 @@ const WorkshopDetail = () => {
                         {['A', 'B', 'C', 'D'].map((letter) => {
                           const imageKey = `option_${letter.toLowerCase()}_image`;
                           const textKey = `option_${letter.toLowerCase()}_text`;
+                          if (!question[textKey] && !question[imageKey]) return null;
                           const isCorrect = question.correct_answer === letter;
                           return (
                             <div key={letter} className={`border rounded-lg p-3 ${isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
@@ -415,13 +417,9 @@ const WorkshopDetail = () => {
                                   <span className="text-xs text-gray-700 font-medium truncate">{question[textKey]}</span>
                                 )}
                               </div>
-                              {question[imageKey] ? (
+                              {question[imageKey] && (
                                 <img src={question[imageKey]} alt={`Opción ${letter}`} className="w-full h-24 object-contain rounded" />
-                              ) : !question[textKey] ? (
-                                <div className="w-full h-12 bg-gray-100 rounded flex items-center justify-center">
-                                  <Image className="h-5 w-5 text-gray-300" />
-                                </div>
-                              ) : null}
+                              )}
                             </div>
                           );
                         })}
@@ -536,10 +534,8 @@ const WorkshopDetail = () => {
                   disabled={
                     isAnyUploading ||
                     !questionData.question ||
-                    !optionHasValue('A') ||
-                    !optionHasValue('B') ||
-                    !optionHasValue('C') ||
-                    !optionHasValue('D')
+                    filledOptions.length === 0 ||
+                    !filledOptions.includes(questionData.correct_answer)
                   }
                   className="btn-primary flex-1 disabled:opacity-50"
                 >
