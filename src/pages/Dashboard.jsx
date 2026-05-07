@@ -57,7 +57,7 @@ const Dashboard = () => {
         const [coursesRes, gradesRes, formadoresRes] = await Promise.all([
           coursesAPI.getAll(),
           gradesAPI.getSummary(user.id),
-          gradesAPI.getMyFormadores()
+          usersAPI.getMyFormadores()
         ]);
 
         setStats({
