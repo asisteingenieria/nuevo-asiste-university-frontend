@@ -8,7 +8,6 @@ import {
   Edit2,
   Trash2,
   Image,
-  Type,
   Settings,
   HelpCircle,
   CheckCircle,
@@ -30,8 +29,6 @@ const INITIAL_QUESTION = {
   points: 1
 };
 
-const INITIAL_TYPES = { A: 'image', B: 'image', C: 'image', D: 'image' };
-
 const WorkshopDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,9 +38,8 @@ const WorkshopDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState({});
   const [questionData, setQuestionData] = useState(INITIAL_QUESTION);
-  const [optionTypes, setOptionTypes] = useState(INITIAL_TYPES);
 
   useEffect(() => {
     fetchWorkshopDetails();
@@ -60,7 +56,6 @@ const WorkshopDetail = () => {
       setQuestions(questionsRes.data.questions || []);
     } catch (error) {
       toast.error('Error al cargar detalles del taller');
-      console.error('Error fetching workshop details:', error);
     } finally {
       setLoading(false);
     }
@@ -68,14 +63,14 @@ const WorkshopDetail = () => {
 
   const handleFileUpload = async (file, imageKey) => {
     try {
-      setUploading(true);
+      setUploading(prev => ({ ...prev, [imageKey]: true }));
       const response = await uploadAPI.uploadImage(file);
       setQuestionData(prev => ({ ...prev, [imageKey]: response.data.fileUrl }));
       toast.success('Imagen subida exitosamente');
     } catch (error) {
       toast.error('Error al subir imagen');
     } finally {
-      setUploading(false);
+      setUploading(prev => ({ ...prev, [imageKey]: false }));
     }
   };
 
@@ -140,17 +135,9 @@ const WorkshopDetail = () => {
     }
   };
 
-  const detectOptionType = (textVal, imageVal) => imageVal ? 'image' : textVal ? 'text' : 'image';
-
   const openModal = (question = null) => {
     setEditingQuestion(question);
     if (question) {
-      setOptionTypes({
-        A: detectOptionType(question.option_a_text, question.option_a_image),
-        B: detectOptionType(question.option_b_text, question.option_b_image),
-        C: detectOptionType(question.option_c_text, question.option_c_image),
-        D: detectOptionType(question.option_d_text, question.option_d_image),
-      });
       setQuestionData({
         question: question.question,
         option_a_text: question.option_a_text || '',
@@ -165,7 +152,6 @@ const WorkshopDetail = () => {
         points: question.points
       });
     } else {
-      setOptionTypes(INITIAL_TYPES);
       setQuestionData(INITIAL_QUESTION);
     }
     setShowModal(true);
@@ -174,19 +160,8 @@ const WorkshopDetail = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingQuestion(null);
-    setOptionTypes(INITIAL_TYPES);
     setQuestionData(INITIAL_QUESTION);
-  };
-
-  const setOptionType = (letter, type) => {
-    setOptionTypes(prev => ({ ...prev, [letter]: type }));
-    const textKey = `option_${letter.toLowerCase()}_text`;
-    const imageKey = `option_${letter.toLowerCase()}_image`;
-    if (type === 'text') {
-      setQuestionData(prev => ({ ...prev, [imageKey]: '' }));
-    } else {
-      setQuestionData(prev => ({ ...prev, [textKey]: '' }));
-    }
+    setUploading({});
   };
 
   const handleDelete = async (questionId) => {
@@ -207,46 +182,61 @@ const WorkshopDetail = () => {
     return !!(questionData[textKey] || questionData[imageKey]);
   };
 
-  const renderOptionInput = (textKey, imageKey, letter) => {
-    const type = optionTypes[letter];
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="form-label mb-0">Opción {letter}</label>
-          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+  const isAnyUploading = Object.values(uploading).some(Boolean);
+
+  // Each option has a text field + image upload, both optional, but at least one required
+  const renderOptionInput = (textKey, imageKey, letter) => (
+    <div className="space-y-3 border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-gray-700">Opción {letter}</span>
+        <div className="flex items-center gap-2">
+          <input
+            type="radio"
+            name="correct_answer"
+            value={letter}
+            checked={questionData.correct_answer === letter}
+            onChange={(e) => setQuestionData(prev => ({ ...prev, correct_answer: e.target.value }))}
+            id={`correct-${letter}`}
+            className="text-green-600"
+          />
+          <label htmlFor={`correct-${letter}`} className="text-sm text-gray-600 cursor-pointer">
+            Respuesta correcta
+          </label>
+        </div>
+      </div>
+
+      {/* Text field */}
+      <div>
+        <label className="text-xs font-medium text-gray-500 mb-1 block">Texto (opcional)</label>
+        <input
+          type="text"
+          value={questionData[textKey]}
+          onChange={(e) => setQuestionData(prev => ({ ...prev, [textKey]: e.target.value }))}
+          className="form-input text-sm"
+          placeholder={`Ej: Aseguradora MOLINA`}
+        />
+      </div>
+
+      {/* Image upload */}
+      <div>
+        <label className="text-xs font-medium text-gray-500 mb-1 block">Imagen (opcional)</label>
+        {questionData[imageKey] ? (
+          <div className="relative">
+            <img
+              src={questionData[imageKey]}
+              alt={`Opción ${letter}`}
+              className="w-full h-32 object-contain rounded border border-gray-200 bg-gray-50"
+            />
             <button
               type="button"
-              onClick={() => setOptionType(letter, 'text')}
-              className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${
-                type === 'text' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
+              onClick={() => setQuestionData(prev => ({ ...prev, [imageKey]: '' }))}
+              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5"
             >
-              <Type className="h-3 w-3" />
-              Texto
-            </button>
-            <button
-              type="button"
-              onClick={() => setOptionType(letter, 'image')}
-              className={`flex items-center gap-1 px-3 py-1.5 transition-colors ${
-                type === 'image' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Image className="h-3 w-3" />
-              Imagen
+              <X className="h-3 w-3" />
             </button>
           </div>
-        </div>
-
-        {type === 'text' ? (
-          <input
-            type="text"
-            value={questionData[textKey]}
-            onChange={(e) => setQuestionData(prev => ({ ...prev, [textKey]: e.target.value }))}
-            className="form-input"
-            placeholder={`Texto de la opción ${letter}...`}
-          />
         ) : (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg">
             <input
               type="file"
               accept="image/*"
@@ -257,49 +247,20 @@ const WorkshopDetail = () => {
               className="hidden"
               id={`${imageKey}-upload`}
             />
-            <label htmlFor={`${imageKey}-upload`} className="cursor-pointer flex flex-col items-center">
-              <Image className="h-8 w-8 text-gray-400 mb-2" />
-              <span className="text-sm text-gray-600">
-                {uploading ? 'Subiendo...' : `Subir imagen para opción ${letter}`}
+            <label
+              htmlFor={`${imageKey}-upload`}
+              className="cursor-pointer flex flex-col items-center py-4"
+            >
+              <Image className="h-6 w-6 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-500">
+                {uploading[imageKey] ? 'Subiendo...' : 'Subir imagen'}
               </span>
             </label>
-            {questionData[imageKey] && (
-              <div className="mt-2">
-                <img
-                  src={questionData[imageKey]}
-                  alt={`Opción ${letter}`}
-                  className="max-w-full h-32 object-contain rounded"
-                />
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-green-600">Imagen subida</span>
-                  <button
-                    type="button"
-                    onClick={() => setQuestionData(prev => ({ ...prev, [imageKey]: '' }))}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
-
-        <div className="flex items-center gap-2">
-          <input
-            type="radio"
-            name="correct_answer"
-            value={letter}
-            checked={questionData.correct_answer === letter}
-            onChange={(e) => setQuestionData(prev => ({ ...prev, correct_answer: e.target.value }))}
-            className="text-green-600"
-          />
-          <span className="text-sm text-gray-600">Respuesta correcta</span>
-        </div>
       </div>
-    );
-  };
+    </div>
+  );
 
   if (loading) {
     return (
@@ -437,18 +398,17 @@ const WorkshopDetail = () => {
                                   {letter}
                                 </span>
                                 {isCorrect && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                {question[textKey] && (
+                                  <span className="text-xs text-gray-700 font-medium truncate">{question[textKey]}</span>
+                                )}
                               </div>
                               {question[imageKey] ? (
                                 <img src={question[imageKey]} alt={`Opción ${letter}`} className="w-full h-24 object-contain rounded" />
-                              ) : question[textKey] ? (
-                                <div className="w-full min-h-[3rem] flex items-center justify-center bg-gray-50 rounded p-2">
-                                  <span className="text-sm text-gray-800 text-center">{question[textKey]}</span>
-                                </div>
-                              ) : (
+                              ) : !question[textKey] ? (
                                 <div className="w-full h-12 bg-gray-100 rounded flex items-center justify-center">
                                   <Image className="h-5 w-5 text-gray-300" />
                                 </div>
-                              )}
+                              ) : null}
                             </div>
                           );
                         })}
@@ -498,11 +458,16 @@ const WorkshopDetail = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderOptionInput('option_a_text', 'option_a_image', 'A')}
-                {renderOptionInput('option_b_text', 'option_b_image', 'B')}
-                {renderOptionInput('option_c_text', 'option_c_image', 'C')}
-                {renderOptionInput('option_d_text', 'option_d_image', 'D')}
+              <div>
+                <p className="text-sm text-gray-500 mb-3">
+                  Cada opción puede tener <strong>texto</strong>, <strong>imagen</strong>, o <strong>ambos</strong>. Al menos uno es requerido.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {renderOptionInput('option_a_text', 'option_a_image', 'A')}
+                  {renderOptionInput('option_b_text', 'option_b_image', 'B')}
+                  {renderOptionInput('option_c_text', 'option_c_image', 'C')}
+                  {renderOptionInput('option_d_text', 'option_d_image', 'D')}
+                </div>
               </div>
 
               <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
@@ -516,7 +481,7 @@ const WorkshopDetail = () => {
                 <button
                   type="submit"
                   disabled={
-                    uploading ||
+                    isAnyUploading ||
                     !questionData.question ||
                     !optionHasValue('A') ||
                     !optionHasValue('B') ||
@@ -525,7 +490,7 @@ const WorkshopDetail = () => {
                   }
                   className="btn-primary flex-1 disabled:opacity-50"
                 >
-                  {uploading ? 'Subiendo...' : editingQuestion ? 'Actualizar' : 'Crear'} Pregunta
+                  {isAnyUploading ? 'Subiendo...' : editingQuestion ? 'Actualizar' : 'Crear'} Pregunta
                 </button>
               </div>
             </form>
