@@ -258,7 +258,7 @@ const TakeWorkshop = () => {
               <p className="font-medium text-yellow-800 mb-2">Instrucciones:</p>
               <p>• Este es un taller práctico con respuestas visuales</p>
               <p>• Observa cuidadosamente cada imagen antes de responder</p>
-              <p>• Cada pregunta tiene 4 opciones (A, B, C, D) representadas por imágenes</p>
+              <p>• Cada pregunta puede tener entre 1 y 4 opciones de respuesta</p>
               <p>• Puedes navegar entre preguntas y cambiar tus respuestas</p>
               <p>• No hay límite de tiempo, tómate el tiempo que necesites</p>
             </div>
