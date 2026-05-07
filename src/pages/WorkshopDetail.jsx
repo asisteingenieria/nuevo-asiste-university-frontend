@@ -386,6 +386,16 @@ const WorkshopDetail = () => {
                         <h4 className="font-medium text-gray-900">{question.question}</h4>
                       </div>
 
+                      {question.question_image && (
+                        <div className="ml-8 mb-3">
+                          <img
+                            src={question.question_image}
+                            alt="Imagen de la pregunta"
+                            className="max-h-40 object-contain rounded border border-gray-200"
+                          />
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-4 ml-8">
                         {['A', 'B', 'C', 'D'].map((letter) => {
                           const imageKey = `option_${letter.toLowerCase()}_image`;
