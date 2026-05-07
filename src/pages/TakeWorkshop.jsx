@@ -308,7 +308,7 @@ const TakeWorkshop = () => {
       {/* Question */}
       <div className="card">
         <div className="mb-6">
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex items-start justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900 flex-1">
               {currentQuestion.question}
             </h3>
@@ -316,6 +316,28 @@ const TakeWorkshop = () => {
               {currentQuestion.points} puntos
             </span>
           </div>
+
+          {/* Question image */}
+          {currentQuestion.question_image && (
+            <div className="mb-6 flex justify-center">
+              <div className="relative inline-block">
+                <img
+                  src={currentQuestion.question_image}
+                  alt="Imagen de referencia"
+                  className="max-w-full rounded-lg border border-gray-200 shadow-sm"
+                  style={{ maxHeight: '300px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setModalImage(currentQuestion.question_image)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 flex items-center justify-center text-white transition-all"
+                  title="Ver imagen completa"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Options */}
           <div className="grid grid-cols-2 gap-6">

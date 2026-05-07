@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 
 const INITIAL_QUESTION = {
   question: '',
+  question_image: '',
   option_a_text: '',
   option_b_text: '',
   option_c_text: '',
@@ -140,6 +141,7 @@ const WorkshopDetail = () => {
     if (question) {
       setQuestionData({
         question: question.question,
+        question_image: question.question_image || '',
         option_a_text: question.option_a_text || '',
         option_b_text: question.option_b_text || '',
         option_c_text: question.option_c_text || '',
@@ -456,6 +458,46 @@ const WorkshopDetail = () => {
                   placeholder="Escribe la pregunta aquí..."
                   required
                 />
+              </div>
+
+              {/* Question image (optional) */}
+              <div>
+                <label className="form-label">Imagen de la pregunta <span className="text-gray-400 font-normal">(opcional)</span></label>
+                {questionData.question_image ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={questionData.question_image}
+                      alt="Imagen de la pregunta"
+                      className="max-w-full max-h-48 object-contain rounded border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setQuestionData(prev => ({ ...prev, question_image: '' }))}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) await handleFileUpload(file, 'question_image');
+                      }}
+                      className="hidden"
+                      id="question_image-upload"
+                    />
+                    <label htmlFor="question_image-upload" className="cursor-pointer flex items-center gap-3 p-4">
+                      <Image className="h-6 w-6 text-gray-400" />
+                      <span className="text-sm text-gray-500">
+                        {uploading['question_image'] ? 'Subiendo...' : 'Subir imagen de referencia para la pregunta'}
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div>
