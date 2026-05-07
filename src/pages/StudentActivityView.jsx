@@ -275,14 +275,14 @@ const StudentActivityView = () => {
                         {block.block_type === 'image' && block.content_url && (
                           <div className="text-center">
                             <img
-                              src={`http://localhost:5001${block.content_url}`}
+                              src={`${block.content_url}`}
                               alt="Contenido educativo"
                               className="max-w-full h-auto rounded-lg shadow-md mx-auto"
                               style={{ maxHeight: '500px' }}
                             />
                             <div className="mt-3 flex justify-center">
                               <button
-                                onClick={() => window.open(`http://localhost:5001${block.content_url}`, '_blank')}
+                                onClick={() => window.open(`${block.content_url}`, '_blank')}
                                 className="btn-secondary text-sm flex items-center gap-2"
                               >
                                 <Eye className="h-4 w-4" />
@@ -300,7 +300,7 @@ const StudentActivityView = () => {
                               style={{ maxHeight: '400px' }}
                               preload="metadata"
                             >
-                              <source src={`http://localhost:5001${block.content_url}`} type="video/mp4" />
+                              <source src={`${block.content_url}`} type="video/mp4" />
                               Tu navegador no soporta el elemento de video.
                             </video>
                             <div className="mt-3 text-sm text-gray-500">
