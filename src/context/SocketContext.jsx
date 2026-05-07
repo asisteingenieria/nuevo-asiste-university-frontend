@@ -68,7 +68,7 @@ export const SocketProvider = ({ children }) => {
         newSocket.disconnect();
       };
     }
-  }, [user]);
+  }, [user?.id]);
 
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
