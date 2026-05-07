@@ -91,6 +91,7 @@ const WorkshopDetail = () => {
         const q = questions[i];
         await workshopQuestionsAPI.update(q.id, {
           question: q.question,
+          question_image: q.question_image,
           option_a_text: q.option_a_text,
           option_b_text: q.option_b_text,
           option_c_text: q.option_c_text,
