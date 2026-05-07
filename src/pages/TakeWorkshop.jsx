@@ -321,7 +321,7 @@ const TakeWorkshop = () => {
           <div className="grid grid-cols-2 gap-6">
             {['A', 'B', 'C', 'D'].map((option) => {
               const imageUrl = currentQuestion[`option_${option.toLowerCase()}_image`];
-              const textValue = currentQuestion[`option_${option.toLowerCase()}`];
+              const textValue = currentQuestion[`option_${option.toLowerCase()}_text`];
               const isSelected = answers[currentQuestion.id] === option;
 
               if (!imageUrl && !textValue) return null;
