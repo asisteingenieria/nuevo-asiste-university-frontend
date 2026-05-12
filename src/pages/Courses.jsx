@@ -161,13 +161,13 @@ const Courses = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isAdmin() ? 'Gestión de Cursos' : 'Mis Cursos'}
+            {(isAdmin() || isFormador()) ? 'Gestión de Cursos' : 'Mis Cursos'}
           </h1>
           <p className="text-gray-600 mt-2">
-            {isAdmin() ? 'Administra cursos del sistema' : 'Cursos asignados'}
+            {(isAdmin() || isFormador()) ? 'Administra cursos del sistema' : 'Cursos asignados'}
           </p>
         </div>
-        {isAdmin() && (
+        {(isAdmin() || isFormador()) && (
           <button
             onClick={() => {
               setEditingCourse(null);
@@ -258,7 +258,7 @@ const Courses = () => {
               <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
                 {course.title}
               </h3>
-              {isAdmin() && (
+              {(isAdmin() || isFormador()) && (
                 <div className="flex gap-1 ml-2">
                   <button
                     onClick={() => handleEdit(course)}
@@ -332,7 +332,7 @@ const Courses = () => {
           <p className="text-gray-500">
             {searchTerm ? 'No se encontraron cursos' : 'No hay cursos disponibles'}
           </p>
-          {isAdmin() && !searchTerm && (
+          {(isAdmin() || isFormador()) && !searchTerm && (
             <button
               onClick={() => {
                 setEditingCourse(null);
