@@ -124,15 +124,15 @@ function App() {
             } />
             
             <Route path="/activities/:id" element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin', 'formador']}>
                 <Layout>
                   <ActivityDetail />
                 </Layout>
               </ProtectedRoute>
             } />
-            
+
             <Route path="/workshops/:id" element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin', 'formador']}>
                 <Layout>
                   <WorkshopDetail />
                 </Layout>
