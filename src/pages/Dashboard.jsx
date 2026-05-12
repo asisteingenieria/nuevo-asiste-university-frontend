@@ -43,14 +43,10 @@ const Dashboard = () => {
         });
 
       } else if (isFormador()) {
-        const [studentsRes, gradesRes] = await Promise.all([
-          usersAPI.getStudents(),
-          gradesAPI.getOverallStats()
-        ]);
+        const studentsRes = await usersAPI.getStudents();
 
         setStats({
-          totalStudents: studentsRes.data.students.length,
-          averageScore: gradesRes.data.general.overall_average_score || 0
+          totalStudents: studentsRes.data.students.length
         });
 
       } else if (isEstudiante()) {

@@ -478,7 +478,7 @@ const CourseDetail = () => {
                     </div>
                   </div>
 
-                  {isAdmin() && (
+                  {(isAdmin() || isFormador()) && (
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => navigate(`/activities/${activity.id}`)}
@@ -487,20 +487,24 @@ const CourseDetail = () => {
                       >
                         <Play className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => handleEdit(activity)}
-                        className="text-blue-600 hover:text-blue-900 p-2"
-                        title="Editar actividad"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(activity.id)}
-                        className="text-red-600 hover:text-red-900 p-2"
-                        title="Eliminar actividad"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {isAdmin() && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(activity)}
+                            className="text-blue-600 hover:text-blue-900 p-2"
+                            title="Editar actividad"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(activity.id)}
+                            className="text-red-600 hover:text-red-900 p-2"
+                            title="Eliminar actividad"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
