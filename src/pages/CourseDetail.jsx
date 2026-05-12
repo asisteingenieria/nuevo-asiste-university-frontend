@@ -342,7 +342,7 @@ const CourseDetail = () => {
             <p className="text-gray-600 mt-2">{course.description}</p>
           )}
         </div>
-        {isAdmin() && (
+        {(isAdmin() || isFormador()) && (
           <button
             onClick={() => {
               setEditingActivity(null);
@@ -424,7 +424,7 @@ const CourseDetail = () => {
           <div className="card text-center py-12">
             <Play className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 mb-4">No hay actividades en este curso</p>
-            {isAdmin() && (
+            {(isAdmin() || isFormador()) && (
               <button
                 onClick={() => {
                   setEditingActivity(null);
@@ -487,24 +487,20 @@ const CourseDetail = () => {
                       >
                         <Play className="h-4 w-4" />
                       </button>
-                      {isAdmin() && (
-                        <>
-                          <button
-                            onClick={() => handleEdit(activity)}
-                            className="text-blue-600 hover:text-blue-900 p-2"
-                            title="Editar actividad"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(activity.id)}
-                            className="text-red-600 hover:text-red-900 p-2"
-                            title="Eliminar actividad"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => handleEdit(activity)}
+                        className="text-blue-600 hover:text-blue-900 p-2"
+                        title="Editar actividad"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(activity.id)}
+                        className="text-red-600 hover:text-red-900 p-2"
+                        title="Eliminar actividad"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   )}
                 </div>

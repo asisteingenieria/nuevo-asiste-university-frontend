@@ -33,7 +33,7 @@ const INITIAL_QUESTION = {
 const WorkshopDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFormador } = useAuth();
   const [workshop, setWorkshop] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -294,7 +294,7 @@ const WorkshopDetail = () => {
           <h1 className="text-3xl font-bold text-gray-900">{workshop.title}</h1>
           {workshop.description && <p className="text-gray-600 mt-2">{workshop.description}</p>}
         </div>
-        {isAdmin() && (
+        {(isAdmin() || isFormador()) && (
           <button onClick={() => openModal()} className="btn-primary flex items-center gap-2">
             <Plus className="h-5 w-5" />
             Nueva Pregunta
@@ -371,7 +371,7 @@ const WorkshopDetail = () => {
             <div className="text-center py-8">
               <HelpCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">No hay preguntas en este taller</p>
-              {isAdmin() && (
+              {(isAdmin() || isFormador()) && (
                 <button onClick={() => openModal()} className="btn-primary">Crear Primera Pregunta</button>
               )}
             </div>
@@ -431,7 +431,7 @@ const WorkshopDetail = () => {
                       </div>
                     </div>
 
-                    {isAdmin() && (
+                    {(isAdmin() || isFormador()) && (
                       <div className="flex gap-1 ml-4">
                         <button onClick={() => openModal(question)} className="text-blue-600 hover:text-blue-900 p-2" title="Editar pregunta">
                           <Edit2 className="h-4 w-4" />

@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
 const ActivityDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFormador } = useAuth();
   const [activity, setActivity] = useState(null);
   const [contentBlocks, setContentBlocks] = useState([]);
   const [workshops, setWorkshops] = useState([]);
@@ -461,7 +461,7 @@ const ActivityDetail = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Contenido de la Actividad</h3>
-                {isAdmin() && (
+                {(isAdmin() || isFormador()) && (
                   <button
                     onClick={() => openContentModal()}
                     className="btn-primary flex items-center gap-2"
@@ -476,7 +476,7 @@ const ActivityDetail = () => {
                 <div className="text-center py-8">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No hay contenido en esta actividad</p>
-                  {isAdmin() && (
+                  {(isAdmin() || isFormador()) && (
                     <button
                       onClick={() => openContentModal()}
                       className="btn-primary"
@@ -523,7 +523,7 @@ const ActivityDetail = () => {
                           )}
                         </div>
 
-                        {isAdmin() && (
+                        {(isAdmin() || isFormador()) && (
                           <div className="flex gap-1 ml-4">
                             <button
                               onClick={() => openContentModal(block)}
@@ -552,7 +552,7 @@ const ActivityDetail = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Talleres Prácticos</h3>
-                {isAdmin() && (
+                {(isAdmin() || isFormador()) && (
                   <button
                     onClick={() => openWorkshopModal()}
                     className="btn-primary flex items-center gap-2"
@@ -567,7 +567,7 @@ const ActivityDetail = () => {
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No hay talleres en esta actividad</p>
-                  {isAdmin() && (
+                  {(isAdmin() || isFormador()) && (
                     <button
                       onClick={() => openWorkshopModal()}
                       className="btn-primary"
@@ -605,7 +605,7 @@ const ActivityDetail = () => {
                           </div>
                         </div>
 
-                        {isAdmin() && (
+                        {(isAdmin() || isFormador()) && (
                           <div className="flex gap-1 ml-4">
                             <button
                               onClick={() => openWorkshopModal(workshop)}
@@ -634,7 +634,7 @@ const ActivityDetail = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Evaluaciones</h3>
-                {isAdmin() && (
+                {(isAdmin() || isFormador()) && (
                   <button
                     onClick={() => openQuizModal()}
                     className="btn-primary flex items-center gap-2"
@@ -649,7 +649,7 @@ const ActivityDetail = () => {
                 <div className="text-center py-8">
                   <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No hay quizzes en esta actividad</p>
-                  {isAdmin() && (
+                  {(isAdmin() || isFormador()) && (
                     <button
                       onClick={() => openQuizModal()}
                       className="btn-primary"
@@ -682,7 +682,7 @@ const ActivityDetail = () => {
                           </div>
                         </div>
 
-                        {isAdmin() && (
+                        {(isAdmin() || isFormador()) && (
                           <div className="flex gap-1 ml-4">
                             <button
                               onClick={() => openQuizModal(quiz)}
