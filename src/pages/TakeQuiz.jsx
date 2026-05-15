@@ -70,6 +70,9 @@ const TakeQuiz = () => {
         return;
       }
       
+      // Set attemptNumber based on how many attempts already done
+      setAttemptNumber((quizData.attempt_number || 0) + 1);
+
       // Set timer (30 minutes default)
       const timeLimit = quizData.time_limit || 30;
       setTimeLeft(timeLimit * 60);

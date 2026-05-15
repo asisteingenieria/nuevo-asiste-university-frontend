@@ -182,6 +182,16 @@ export const workshopQuestionsAPI = {
   submit: (workshopId, answers) => api.post(`/workshop-questions/${workshopId}/submit`, { answers }),
 };
 
+// Retake Grants API
+export const retakeGrantsAPI = {
+  getQuizStudents: (quizId) => api.get(`/quiz-retake-grants/quiz/${quizId}/students`),
+  grantRetake: (quizId, studentId) => api.post(`/quiz-retake-grants/quiz/${quizId}/grant`, { student_id: studentId }),
+  revokeRetake: (quizId, studentId) => api.delete(`/quiz-retake-grants/quiz/${quizId}/grant/${studentId}`),
+  getWorkshopStudents: (workshopId) => api.get(`/workshop-retake-grants/workshop/${workshopId}/students`),
+  grantWorkshopRetake: (workshopId, studentId) => api.post(`/workshop-retake-grants/workshop/${workshopId}/grant`, { student_id: studentId }),
+  revokeWorkshopRetake: (workshopId, studentId) => api.delete(`/workshop-retake-grants/workshop/${workshopId}/grant/${studentId}`),
+};
+
 // Forum API
 export const forumAPI = {
   getPosts: () => api.get('/forum/posts'),

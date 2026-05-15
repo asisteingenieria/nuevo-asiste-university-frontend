@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { activitiesAPI, workshopsAPI, quizzesAPI, uploadAPI, contentBlocksAPI, workshopQuestionsAPI, gradesAPI } from '../services/api';
+import { activitiesAPI, workshopsAPI, quizzesAPI, uploadAPI, contentBlocksAPI, workshopQuestionsAPI, gradesAPI, retakeGrantsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft,
-  Plus, 
-  Edit2, 
-  Trash2, 
+  Plus,
+  Edit2,
+  Trash2,
   Upload,
   FileText,
   Image,
@@ -17,7 +17,8 @@ import {
   HelpCircle,
   MoveUp,
   MoveDown,
-  RotateCcw
+  RotateCcw,
+  Users
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,6 +36,20 @@ const ActivityDetail = () => {
   const [modalType, setModalType] = useState('content'); // 'content', 'workshop', 'quiz'
   const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Retake grants modal state (quizzes)
+  const [showRetakeModal, setShowRetakeModal] = useState(false);
+  const [retakeQuiz, setRetakeQuiz] = useState(null);
+  const [retakeStudents, setRetakeStudents] = useState([]);
+  const [loadingRetakeStudents, setLoadingRetakeStudents] = useState(false);
+  const [savingGrant, setSavingGrant] = useState(null);
+
+  // Retake grants modal state (workshops)
+  const [showWorkshopRetakeModal, setShowWorkshopRetakeModal] = useState(false);
+  const [retakeWorkshop, setRetakeWorkshop] = useState(null);
+  const [retakeWorkshopStudents, setRetakeWorkshopStudents] = useState([]);
+  const [loadingWorkshopRetakeStudents, setLoadingWorkshopRetakeStudents] = useState(false);
+  const [savingWorkshopGrant, setSavingWorkshopGrant] = useState(null);
   
   // Content block form data
   const [contentBlockData, setContentBlockData] = useState({
@@ -48,6 +63,7 @@ const ActivityDetail = () => {
   const [workshopData, setWorkshopData] = useState({
     title: '',
     description: '',
+    max_attempts: 1,
     order_index: 0
   });
 
@@ -282,12 +298,14 @@ const ActivityDetail = () => {
       setWorkshopData({
         title: workshop.title,
         description: workshop.description || '',
+        max_attempts: parseInt(workshop.max_attempts) || 1,
         order_index: workshop.order_index
       });
     } else {
       setWorkshopData({
         title: '',
         description: '',
+        max_attempts: 1,
         order_index: workshops.length
       });
     }
@@ -355,6 +373,70 @@ const ActivityDetail = () => {
     } catch (error) {
       toast.error('Error al resetear calificaciones');
       console.error(error);
+    }
+  };
+
+  const openRetakeModal = async (quiz) => {
+    setRetakeQuiz(quiz);
+    setShowRetakeModal(true);
+    setLoadingRetakeStudents(true);
+    try {
+      const res = await retakeGrantsAPI.getQuizStudents(quiz.id);
+      setRetakeStudents(res.data.students);
+    } catch (error) {
+      toast.error('Error al cargar estudiantes');
+    } finally {
+      setLoadingRetakeStudents(false);
+    }
+  };
+
+  const handleToggleGrant = async (studentId, currentHasGrant) => {
+    setSavingGrant(studentId);
+    try {
+      if (currentHasGrant) {
+        await retakeGrantsAPI.revokeRetake(retakeQuiz.id, studentId);
+      } else {
+        await retakeGrantsAPI.grantRetake(retakeQuiz.id, studentId);
+      }
+      setRetakeStudents(prev =>
+        prev.map(s => s.id === studentId ? { ...s, has_grant: currentHasGrant ? 0 : 1 } : s)
+      );
+    } catch (error) {
+      toast.error('Error al actualizar permiso');
+    } finally {
+      setSavingGrant(null);
+    }
+  };
+
+  const openWorkshopRetakeModal = async (workshop) => {
+    setRetakeWorkshop(workshop);
+    setShowWorkshopRetakeModal(true);
+    setLoadingWorkshopRetakeStudents(true);
+    try {
+      const res = await retakeGrantsAPI.getWorkshopStudents(workshop.id);
+      setRetakeWorkshopStudents(res.data.students);
+    } catch (error) {
+      toast.error('Error al cargar estudiantes');
+    } finally {
+      setLoadingWorkshopRetakeStudents(false);
+    }
+  };
+
+  const handleToggleWorkshopGrant = async (studentId, currentHasGrant) => {
+    setSavingWorkshopGrant(studentId);
+    try {
+      if (currentHasGrant) {
+        await retakeGrantsAPI.revokeWorkshopRetake(retakeWorkshop.id, studentId);
+      } else {
+        await retakeGrantsAPI.grantWorkshopRetake(retakeWorkshop.id, studentId);
+      }
+      setRetakeWorkshopStudents(prev =>
+        prev.map(s => s.id === studentId ? { ...s, has_grant: currentHasGrant ? 0 : 1 } : s)
+      );
+    } catch (error) {
+      toast.error('Error al actualizar permiso');
+    } finally {
+      setSavingWorkshopGrant(null);
     }
   };
 
@@ -612,6 +694,9 @@ const ActivityDetail = () => {
 
                           <div className="flex items-center gap-4 ml-8 text-sm text-gray-500">
                             <span>{workshop.question_count || 0} preguntas</span>
+                            <span className={`font-medium ${workshop.max_attempts > 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                              {workshop.max_attempts > 1 ? `✓ ${workshop.max_attempts} intentos` : '1 intento'}
+                            </span>
                             <button
                               onClick={() => navigate(`/workshops/${workshop.id}`)}
                               className="text-blue-600 hover:text-blue-800 font-medium"
@@ -622,7 +707,16 @@ const ActivityDetail = () => {
                         </div>
 
                         {(isAdmin() || isFormador()) && (
-                          <div className="flex gap-1 ml-4">
+                          <div className="flex gap-1 ml-4 items-center">
+                            {workshop.max_attempts >= 2 && (
+                              <button
+                                onClick={() => openWorkshopRetakeModal(workshop)}
+                                className="text-purple-600 hover:text-purple-800 p-1"
+                                title="Gestionar reintentos por estudiante"
+                              >
+                                <Users className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => openWorkshopModal(workshop)}
                               className="text-blue-600 hover:text-blue-900 p-1"
@@ -703,6 +797,15 @@ const ActivityDetail = () => {
 
                         {(isAdmin() || isFormador()) && (
                           <div className="flex gap-1 ml-4 items-center">
+                            {quiz.max_attempts >= 2 && (
+                              <button
+                                onClick={() => openRetakeModal(quiz)}
+                                className="text-purple-600 hover:text-purple-800 p-1"
+                                title="Gestionar reintentos por estudiante"
+                              >
+                                <Users className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleResetQuizGrades(quiz.id, quiz.title)}
                               className="text-orange-500 hover:text-orange-700 p-1"
@@ -733,6 +836,148 @@ const ActivityDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Workshop Retake Grants Modal */}
+      {showWorkshopRetakeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Gestionar Reintentos — Taller</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{retakeWorkshop?.title}</p>
+              </div>
+              <button
+                onClick={() => setShowWorkshopRetakeModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg">
+              Selecciona los estudiantes que pueden realizar un segundo intento en este taller.
+            </p>
+
+            {loadingWorkshopRetakeStudents ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : retakeWorkshopStudents.length === 0 ? (
+              <p className="text-center text-gray-500 py-6">No hay estudiantes inscritos en este curso.</p>
+            ) : (
+              <div className="space-y-2">
+                {retakeWorkshopStudents.map(student => (
+                  <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{student.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                      <p className="text-xs mt-0.5">
+                        {student.attempt_count === 0
+                          ? <span className="text-gray-400">Sin intentos</span>
+                          : <span className="text-blue-600">{student.attempt_count} intento(s) — {student.best_score}%</span>
+                        }
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleToggleWorkshopGrant(student.id, student.has_grant)}
+                      disabled={savingWorkshopGrant === student.id}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ml-3 flex-shrink-0 ${
+                        student.has_grant ? 'bg-purple-600' : 'bg-gray-300'
+                      } disabled:opacity-50`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          student.has_grant ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4 pt-4 border-t">
+              <button
+                onClick={() => setShowWorkshopRetakeModal(false)}
+                className="btn-primary"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Retake Grants Modal */}
+      {showRetakeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Gestionar Reintentos</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{retakeQuiz?.title}</p>
+              </div>
+              <button
+                onClick={() => setShowRetakeModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-4 p-3 bg-blue-50 rounded-lg">
+              Selecciona los estudiantes que pueden realizar un segundo intento en este quiz.
+            </p>
+
+            {loadingRetakeStudents ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : retakeStudents.length === 0 ? (
+              <p className="text-center text-gray-500 py-6">No hay estudiantes inscritos en este curso.</p>
+            ) : (
+              <div className="space-y-2">
+                {retakeStudents.map(student => (
+                  <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{student.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                      <p className="text-xs mt-0.5">
+                        {student.attempt_count === 0
+                          ? <span className="text-gray-400">Sin intentos</span>
+                          : <span className="text-blue-600">{student.attempt_count} intento(s) — {student.best_score}%</span>
+                        }
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleToggleGrant(student.id, student.has_grant)}
+                      disabled={savingGrant === student.id}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ml-3 flex-shrink-0 ${
+                        student.has_grant ? 'bg-purple-600' : 'bg-gray-300'
+                      } disabled:opacity-50`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          student.has_grant ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4 pt-4 border-t">
+              <button
+                onClick={() => setShowRetakeModal(false)}
+                className="btn-primary"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -853,6 +1098,24 @@ const ActivityDetail = () => {
                     className="form-input h-20 resize-none"
                     placeholder="Descripción del taller..."
                   />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <label className="font-medium text-gray-900 text-sm">Permitir 2 intentos</label>
+                    <p className="text-xs text-gray-500 mt-0.5">Los estudiantes podrán realizar el taller hasta 2 veces</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWorkshopData({...workshopData, max_attempts: workshopData.max_attempts === 2 ? 1 : 2})}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      workshopData.max_attempts === 2 ? 'bg-primary-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      workshopData.max_attempts === 2 ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg">
