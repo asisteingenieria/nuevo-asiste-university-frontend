@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { activitiesAPI, workshopsAPI, quizzesAPI, uploadAPI, contentBlocksAPI, workshopQuestionsAPI } from '../services/api';
+import { activitiesAPI, workshopsAPI, quizzesAPI, uploadAPI, contentBlocksAPI, workshopQuestionsAPI, gradesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft,
@@ -16,7 +16,8 @@ import {
   Settings,
   HelpCircle,
   MoveUp,
-  MoveDown
+  MoveDown,
+  RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -66,6 +67,7 @@ const ActivityDetail = () => {
     title: '',
     description: '',
     passing_score: 70,
+    max_attempts: 1,
     questions: []
   });
 
@@ -300,6 +302,7 @@ const ActivityDetail = () => {
         title: quiz.title,
         description: quiz.description || '',
         passing_score: quiz.passing_score,
+        max_attempts: quiz.max_attempts || 1,
         questions: quiz.questions || []
       });
     } else {
@@ -307,6 +310,7 @@ const ActivityDetail = () => {
         title: '',
         description: '',
         passing_score: 70,
+        max_attempts: 1,
         questions: []
       });
     }
@@ -338,8 +342,20 @@ const ActivityDetail = () => {
       title: '',
       description: '',
       passing_score: 70,
+      max_attempts: 1,
       questions: []
     });
+  };
+
+  const handleResetQuizGrades = async (quizId, quizTitle) => {
+    if (!window.confirm(`¿Resetear los intentos de TODOS los estudiantes en "${quizTitle}"?\n\nEsto eliminará todas las calificaciones actuales y permitirá que los estudiantes presenten el quiz nuevamente con la corrección aplicada.`)) return;
+    try {
+      const res = await gradesAPI.resetAllQuizGrades(quizId);
+      toast.success(`Intentos reseteados: ${res.data.deletedAttempts} calificación(es) eliminadas. Los estudiantes ya pueden presentar el quiz.`);
+    } catch (error) {
+      toast.error('Error al resetear calificaciones');
+      console.error(error);
+    }
   };
 
   const handleDelete = async (type, itemId) => {
@@ -679,11 +695,21 @@ const ActivityDetail = () => {
                           <div className="flex items-center gap-4 ml-8 text-sm text-gray-500">
                             <span>{quiz.total_questions || 0} preguntas</span>
                             <span>Nota mínima: {quiz.passing_score}%</span>
+                            <span className={`font-medium ${quiz.max_attempts > 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                              {quiz.max_attempts > 1 ? `✓ ${quiz.max_attempts} intentos` : '1 intento'}
+                            </span>
                           </div>
                         </div>
 
                         {(isAdmin() || isFormador()) && (
-                          <div className="flex gap-1 ml-4">
+                          <div className="flex gap-1 ml-4 items-center">
+                            <button
+                              onClick={() => handleResetQuizGrades(quiz.id, quiz.title)}
+                              className="text-orange-500 hover:text-orange-700 p-1"
+                              title="Resetear intentos de todos los estudiantes"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => openQuizModal(quiz)}
                               className="text-blue-600 hover:text-blue-900 p-1"
@@ -885,6 +911,26 @@ const ActivityDetail = () => {
                     onChange={(e) => setQuizData({...quizData, passing_score: parseInt(e.target.value)})}
                     className="form-input"
                   />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div>
+                    <label className="font-medium text-gray-900 text-sm">Permitir 2 intentos</label>
+                    <p className="text-xs text-gray-500 mt-0.5">Los estudiantes podrán realizar el quiz hasta 2 veces</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuizData({...quizData, max_attempts: quizData.max_attempts === 2 ? 1 : 2})}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      quizData.max_attempts === 2 ? 'bg-primary-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        quizData.max_attempts === 2 ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 {/* Questions Section */}

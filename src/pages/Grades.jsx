@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { gradesAPI, coursesAPI, usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import StudentGrades from './StudentGrades';
-import { 
-  BarChart3, 
-  Users, 
-  BookOpen, 
+import {
+  BarChart3,
+  Users,
+  BookOpen,
   TrendingUp,
   TrendingDown,
   Filter,
@@ -14,7 +14,8 @@ import {
   XCircle,
   Award,
   X,
-  Download
+  Download,
+  RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -202,6 +203,20 @@ const Grades = () => {
     } catch (error) {
       toast.error('Error al cargar detalles del estudiante');
       console.error('Error fetching student details:', error);
+    }
+  };
+
+  const handleResetStudentQuiz = async (studentId, quizId, studentName, quizTitle) => {
+    if (!window.confirm(`¿Resetear el intento de ${studentName} en "${quizTitle}"?\n\nEl estudiante podrá presentar el quiz nuevamente.`)) return;
+    try {
+      await gradesAPI.resetQuizGrade(studentId, quizId);
+      toast.success(`Intento reseteado. ${studentName} puede volver a presentar el quiz.`);
+      // Refresh data
+      fetchData();
+      setShowDetailsModal(false);
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Error al resetear calificación';
+      toast.error(msg);
     }
   };
 
@@ -854,18 +869,34 @@ const Grades = () => {
                                     <div key={quiz.id} className="bg-blue-50 rounded-lg p-4">
                                       <div className="flex justify-between items-start mb-2">
                                         <div className="text-sm font-medium text-gray-900">{quiz.quiz_title}</div>
-                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(quiz.percentage, quiz.passing_score)}`}>
-                                          {getGradeIcon(quiz.percentage, quiz.passing_score)}
-                                          <span className="ml-1">
-                                            {quiz.percentage >= quiz.passing_score ? 'Aprobado' : 'Reprobado'}
+                                        <div className="flex items-center gap-2">
+                                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(quiz.percentage, quiz.passing_score)}`}>
+                                            {getGradeIcon(quiz.percentage, quiz.passing_score)}
+                                            <span className="ml-1">
+                                              {quiz.percentage >= quiz.passing_score ? 'Aprobado' : 'Reprobado'}
+                                            </span>
                                           </span>
-                                        </span>
+                                          {(isAdmin() || isFormador()) && (
+                                            <button
+                                              onClick={() => handleResetStudentQuiz(
+                                                selectedStudentDetails.student?.id,
+                                                quiz.quiz_id,
+                                                selectedStudentDetails.student?.name,
+                                                quiz.quiz_title
+                                              )}
+                                              className="text-orange-500 hover:text-orange-700 p-1 rounded"
+                                              title="Resetear intento de este estudiante"
+                                            >
+                                              <RotateCcw className="h-3.5 w-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                       <div className="text-sm text-gray-600 mb-2">
                                         {quiz.score}/{quiz.max_score} puntos ({quiz.percentage}%)
                                       </div>
                                       <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                        <div 
+                                        <div
                                           className={`h-2 rounded-full transition-all duration-300 ${
                                             quiz.percentage >= quiz.passing_score ? 'bg-blue-500' : 'bg-red-500'
                                           }`}

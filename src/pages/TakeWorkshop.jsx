@@ -91,43 +91,24 @@ const TakeWorkshop = () => {
   const handleSubmitWorkshop = async () => {
     try {
       setSubmitting(true);
-      
-      // Calculate score
-      let correctAnswers = 0;
-      let totalPoints = 0;
-      
-      questions.forEach(question => {
-        totalPoints += question.points;
-        if (answers[question.id] === question.correct_answer) {
-          correctAnswers += question.points;
-        }
-      });
-      
-      const percentage = Math.round((correctAnswers / totalPoints) * 100);
-      
-      // Submit grade for workshop
+
       const gradeData = {
         student_id: user.id,
         workshop_id: parseInt(id),
-        score: correctAnswers,
-        max_score: totalPoints,
-        percentage: percentage,
         answers: answers
       };
-      
-      await gradesAPI.submitWorkshopGrade(gradeData);
-      
+
+      const response = await gradesAPI.submitWorkshopGrade(gradeData);
+      const { score, max_score, percentage } = response.data;
+
       setResult({
-        score: correctAnswers,
-        maxScore: totalPoints,
-        percentage: percentage,
+        score,
+        maxScore: max_score,
+        percentage,
         totalQuestions: questions.length,
-        correctCount: Object.keys(answers).filter(qId => {
-          const question = questions.find(q => q.id == qId);
-          return question && answers[qId] === question.correct_answer;
-        }).length
+        correctCount: Math.round((score / max_score) * questions.length) || 0
       });
-      
+
       setWorkshopCompleted(true);
       toast.success('Taller enviado exitosamente');
     } catch (error) {

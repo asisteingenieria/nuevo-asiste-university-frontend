@@ -123,6 +123,8 @@ export const gradesAPI = {
   submitQuizGrade: (gradeData) => api.post('/grades/quiz', gradeData),
   submitWorkshopGrade: (gradeData) => api.post('/grades/workshop', gradeData),
   getOverallStats: () => api.get('/grades/overall-stats'),
+  resetQuizGrade: (studentId, quizId) => api.delete(`/grades/quiz/student/${studentId}/quiz/${quizId}`),
+  resetAllQuizGrades: (quizId) => api.delete(`/grades/quiz/${quizId}/all`),
 };
 
 // Satisfaction API
