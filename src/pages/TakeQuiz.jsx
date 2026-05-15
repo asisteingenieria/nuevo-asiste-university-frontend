@@ -26,6 +26,7 @@ const TakeQuiz = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [attemptNumber, setAttemptNumber] = useState(1);
 
   useEffect(() => {
     fetchQuizDetails();
@@ -56,9 +57,12 @@ const TakeQuiz = () => {
       
       // Check if already completed
       if (quizData.is_completed) {
+        const attemptsUsed = quizData.attempt_number || 1;
+        setAttemptNumber(attemptsUsed);
         setQuizCompleted(true);
         setResult({
           score: quizData.completed_score || 0,
+          maxScore: quizData.completed_max_score || 100,
           percentage: quizData.completed_score || 0,
           passed: (quizData.completed_score || 0) >= (quizData.passing_score || 70),
           message: 'Ya has completado este quiz anteriormente.'
@@ -79,6 +83,17 @@ const TakeQuiz = () => {
 
   const startQuiz = () => {
     setQuizStarted(true);
+  };
+
+  const handleRetry = () => {
+    setAttemptNumber(prev => prev + 1);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+    setQuizCompleted(false);
+    setQuizStarted(false);
+    setResult(null);
+    const timeLimit = quiz.time_limit || 30;
+    setTimeLeft(timeLimit * 60);
   };
 
   const handleAnswerChange = (questionId, selectedOption) => {
@@ -110,13 +125,13 @@ const TakeQuiz = () => {
       
       quiz.questions.forEach(question => {
         totalPoints += question.points;
-        if (answers[question.id] === question.correct_answer) {
+        if (Number(answers[question.id]) === Number(question.correct_answer)) {
           correctAnswers += question.points;
         }
       });
-      
+
       const percentage = Math.round((correctAnswers / totalPoints) * 100);
-      
+
       // Submit grade
       const gradeData = {
         student_id: user.id,
@@ -124,11 +139,12 @@ const TakeQuiz = () => {
         score: correctAnswers,
         max_score: totalPoints,
         percentage: percentage,
-        answers: answers
+        answers: answers,
+        attempt_number: attemptNumber
       };
-      
+
       await gradesAPI.submitQuizGrade(gradeData);
-      
+
       setResult({
         score: correctAnswers,
         maxScore: totalPoints,
@@ -137,7 +153,7 @@ const TakeQuiz = () => {
         totalQuestions: quiz.questions.length,
         correctCount: Object.keys(answers).filter(qId => {
           const question = quiz.questions.find(q => q.id == qId);
-          return question && answers[qId] === question.correct_answer;
+          return question && Number(answers[qId]) === Number(question.correct_answer);
         }).length
       });
       
@@ -200,12 +216,17 @@ const TakeQuiz = () => {
               {result.passed ? '¡Felicitaciones!' : 'Quiz Completado'}
             </h2>
             
-            <p className="text-gray-600 mb-6">
-              {result.passed 
-                ? 'Has aprobado el quiz exitosamente' 
-                : `Necesitas ${quiz.passing_score}% para aprobar. ¡Inténtalo de nuevo!`
+            <p className="text-gray-600 mb-2">
+              {result.passed
+                ? 'Has aprobado el quiz exitosamente'
+                : `Necesitas ${quiz.passing_score}% para aprobar.`
               }
             </p>
+            {quiz.max_attempts > 1 && (
+              <p className="text-sm text-gray-500 mb-4">
+                Intento {attemptNumber} de {quiz.max_attempts}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -227,13 +248,22 @@ const TakeQuiz = () => {
             </div>
           </div>
 
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             <button
               onClick={() => navigate(-1)}
               className="btn-secondary"
             >
               Volver al Curso
             </button>
+            {quiz.max_attempts > 1 && attemptNumber < quiz.max_attempts && (
+              <button
+                onClick={handleRetry}
+                className="btn-primary flex items-center gap-2"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reintentar Quiz (Intento {attemptNumber + 1} de {quiz.max_attempts})
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -282,6 +312,9 @@ const TakeQuiz = () => {
               <p>• Puedes navegar entre preguntas antes de enviar</p>
               <p>• El quiz se enviará automáticamente cuando se agote el tiempo</p>
               <p>• Asegúrate de responder todas las preguntas</p>
+              {quiz.max_attempts > 1 && (
+                <p className="text-blue-600 font-medium">• Este quiz permite {quiz.max_attempts} intentos — actualmente en el intento {attemptNumber}</p>
+              )}
             </div>
           </div>
 
