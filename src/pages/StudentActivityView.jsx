@@ -379,7 +379,7 @@ const StudentActivityView = () => {
                               className="btn-primary w-full flex items-center justify-center gap-2"
                             >
                               <Play className="h-4 w-4" />
-                              Comenzar Taller
+                              {workshop.attempt_count > 0 ? 'Segundo Intento' : 'Comenzar Taller'}
                             </button>
                           )}
                         </div>
@@ -454,7 +454,7 @@ const StudentActivityView = () => {
                             </div>
                           )}
 
-                          {quiz.attempts > 0 ? (
+                          {quiz.is_completed ? (
                             <div className="w-full flex items-center justify-center gap-2 py-3 bg-green-100 text-green-800 rounded-lg font-medium">
                               <CheckCircle className="h-4 w-4" />
                               Evaluación Completada
@@ -465,7 +465,7 @@ const StudentActivityView = () => {
                               className="btn-primary w-full flex items-center justify-center gap-2"
                             >
                               <Target className="h-4 w-4" />
-                              Comenzar Evaluación
+                              {quiz.attempts > 0 ? 'Segundo Intento' : 'Comenzar Evaluación'}
                             </button>
                           )}
                         </div>
