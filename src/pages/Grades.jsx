@@ -220,6 +220,23 @@ const Grades = () => {
     }
   };
 
+  const formatStudentAnswers = (studentAnswers, gradeType) => {
+    if (!studentAnswers) return 'Sin respuestas';
+    const answers = typeof studentAnswers === 'string'
+      ? (() => { try { return JSON.parse(studentAnswers); } catch { return null; } })()
+      : studentAnswers;
+    if (!answers || typeof answers !== 'object') return 'Sin respuestas';
+    const optionLetters = ['A', 'B', 'C', 'D'];
+    const sorted = Object.entries(answers).sort(([a], [b]) => Number(a) - Number(b));
+    if (sorted.length === 0) return 'Sin respuestas';
+    return sorted.map(([, value], idx) => {
+      const letter = gradeType === 'quiz'
+        ? (optionLetters[Number(value)] ?? String(value))
+        : String(value);
+      return `P${idx + 1}:${letter}`;
+    }).join(' | ');
+  };
+
   const exportToExcel = () => {
     if (!isAdmin() && !isFormador()) {
       toast.error('No tienes permisos para exportar datos');
@@ -228,10 +245,10 @@ const Grades = () => {
 
     // Crear un nuevo libro de trabajo
     const workbook = XLSX.utils.book_new();
-    
+
     // Preparar datos en formato horizontal
     const worksheetData = [];
-    
+
     // ENCABEZADOS EN LA PRIMERA FILA (CON COLORES DE FONDO)
     const headers = [
       'ESTUDIANTE',
@@ -245,21 +262,22 @@ const Grades = () => {
       'PORCENTAJE',
       'ESTADO',
       'INTENTO #',
+      'RESPUESTAS',
       'FECHA COMPLETADO',
       'NOTA MÍNIMA REQUERIDA',
       'PROMEDIO ESTUDIANTE',
       'TOTAL EVALUACIONES'
     ];
-    
+
     worksheetData.push(headers);
-    
+
     // PROCESAR CADA CALIFICACIÓN EN FILAS HORIZONTALES
     grades.forEach(grade => {
       // Calcular datos del estudiante
       const studentGrades = grades.filter(g => g.student_name === grade.student_name);
-      const studentAverage = studentGrades.length > 0 ? 
+      const studentAverage = studentGrades.length > 0 ?
         Math.round(studentGrades.reduce((sum, g) => sum + parseFloat(g.percentage), 0) / studentGrades.length) : 0;
-      
+
       const row = [
         grade.student_name || 'N/A',
         grade.student_email || 'N/A',
@@ -272,12 +290,13 @@ const Grades = () => {
         `${grade.percentage || 0}%`,
         parseFloat(grade.percentage || 0) >= (grade.passing_score || 70) ? 'APROBADO' : 'REPROBADO',
         grade.attempt_number || 1,
+        formatStudentAnswers(grade.student_answers, grade.grade_type),
         grade.completed_at ? new Date(grade.completed_at).toLocaleDateString('es-ES') : 'N/A',
         `${grade.passing_score || 70}%`,
         `${studentAverage}%`,
         studentGrades.length
       ];
-      
+
       worksheetData.push(row);
     });
     
@@ -297,6 +316,7 @@ const Grades = () => {
       { wch: 12 }, // PORCENTAJE
       { wch: 12 }, // ESTADO
       { wch: 10 }, // INTENTO #
+      { wch: 45 }, // RESPUESTAS
       { wch: 15 }, // FECHA COMPLETADO
       { wch: 18 }, // NOTA MÍNIMA
       { wch: 18 }, // PROMEDIO ESTUDIANTE
@@ -317,7 +337,7 @@ const Grades = () => {
         backgroundColor = 'FF7C3AED'; // Púrpura para curso
       } else if (header.includes('ACTIVIDAD')) {
         backgroundColor = 'FFEA580C'; // Naranja para actividad
-      } else if (header.includes('EVALUACIÓN') || header.includes('TÍTULO') || header.includes('PUNTUACIÓN') || header.includes('PUNTAJE') || header.includes('PORCENTAJE') || header.includes('ESTADO') || header.includes('INTENTO') || header.includes('FECHA') || header.includes('NOTA')) {
+      } else if (header.includes('EVALUACIÓN') || header.includes('TÍTULO') || header.includes('PUNTUACIÓN') || header.includes('PUNTAJE') || header.includes('PORCENTAJE') || header.includes('ESTADO') || header.includes('INTENTO') || header.includes('RESPUESTAS') || header.includes('FECHA') || header.includes('NOTA')) {
         backgroundColor = 'FF0891B2'; // Cyan para detalles de evaluación
       } else if (header.includes('PROMEDIO') || header.includes('TOTAL')) {
         backgroundColor = 'FF059669'; // Verde para estadísticas
@@ -364,9 +384,10 @@ const Grades = () => {
         if (worksheet[cellRef]) {
           worksheet[cellRef].s = {
             font: { sz: 10 },
-            alignment: { 
-              horizontal: colIndex === 0 || colIndex === 1 ? "left" : "center", 
-              vertical: "center" 
+            alignment: {
+              horizontal: colIndex === 0 || colIndex === 1 || colIndex === 11 ? "left" : "center",
+              vertical: "center",
+              wrapText: colIndex === 11
             },
             border: {
               top: { style: "thin", color: { rgb: "E5E7EB" } },
@@ -394,8 +415,10 @@ const Grades = () => {
       }
     }
     
-    // Establecer altura de la fila de encabezados
-    worksheet['!rows'] = [{ hpt: 30 }]; // Altura de 30 puntos para la primera fila
+    // Establecer alturas de filas: encabezado más alto, datos con altura automática
+    const rowHeights = [{ hpt: 30 }]; // Encabezado
+    for (let i = 1; i < worksheetData.length; i++) rowHeights.push({ hpt: 20 });
+    worksheet['!rows'] = rowHeights;
     
     // Agregar la hoja al libro
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Calificaciones');
