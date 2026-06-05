@@ -26,6 +26,8 @@ const Courses = () => {
   const [editingCourse, setEditingCourse] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [assignedStudentIds, setAssignedStudentIds] = useState([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     title: '',
@@ -122,15 +124,23 @@ const Courses = () => {
 
   const handleAssignStudents = async () => {
     try {
-      const promises = selectedStudents.map(studentId => 
-        assignmentsAPI.create({
-          course_id: selectedCourse.id,
-          student_id: studentId
-        })
+      const results = await Promise.allSettled(
+        selectedStudents.map(studentId =>
+          assignmentsAPI.create({
+            course_id: selectedCourse.id,
+            student_id: studentId
+          })
+        )
       );
-      
-      await Promise.all(promises);
-      toast.success(`Curso asignado a ${selectedStudents.length} estudiante(s)`);
+
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const alreadyAssigned = results.filter(
+        r => r.status === 'rejected' && r.reason?.response?.status === 400
+      ).length;
+
+      if (succeeded > 0) toast.success(`Curso asignado a ${succeeded} estudiante(s)`);
+      if (alreadyAssigned > 0) toast.error(`${alreadyAssigned} estudiante(s) ya tenían este curso asignado`);
+
       setShowAssignModal(false);
       setSelectedStudents([]);
       setSelectedCourse(null);
@@ -139,9 +149,28 @@ const Courses = () => {
     }
   };
 
+  const handleOpenAssignModal = async (course) => {
+    setSelectedCourse(course);
+    setSelectedStudents([]);
+    setAssignedStudentIds([]);
+    setShowAssignModal(true);
+    setLoadingAssignments(true);
+    try {
+      const response = await assignmentsAPI.getAll();
+      const ids = response.data.assignments
+        .filter(a => a.course_id === course.id)
+        .map(a => a.student_id);
+      setAssignedStudentIds(ids);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
+
   const handleStudentSelection = (studentId) => {
-    setSelectedStudents(prev => 
-      prev.includes(studentId) 
+    setSelectedStudents(prev =>
+      prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
     );
@@ -306,11 +335,7 @@ const Courses = () => {
               
               {(isAdmin() || isFormador()) && (
                 <button
-                  onClick={() => {
-                    setSelectedCourse(course);
-                    setShowAssignModal(true);
-                    setSelectedStudents([]);
-                  }}
+                  onClick={() => handleOpenAssignModal(course)}
                   className="btn-secondary flex items-center gap-2"
                 >
                   <UserPlus className="h-4 w-4" />
@@ -406,21 +431,50 @@ const Courses = () => {
               Asignar "{selectedCourse?.title}" a Estudiantes
             </h3>
             
+            {!loadingAssignments && students.filter(s => !assignedStudentIds.includes(s.id)).length > 0 && (
+              <div className="flex items-center justify-between mb-3 pb-3 border-b">
+                <span className="text-sm text-gray-600">
+                  {selectedStudents.length} de {students.filter(s => !assignedStudentIds.includes(s.id)).length} seleccionados
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const available = students.filter(s => !assignedStudentIds.includes(s.id)).map(s => s.id);
+                    const allSelected = available.every(id => selectedStudents.includes(id));
+                    setSelectedStudents(allSelected ? [] : available);
+                  }}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-800"
+                >
+                  {students.filter(s => !assignedStudentIds.includes(s.id)).every(s => selectedStudents.includes(s.id))
+                    ? 'Deseleccionar todos'
+                    : 'Seleccionar todos'}
+                </button>
+              </div>
+            )}
+
             <div className="space-y-3 max-h-60 overflow-y-auto">
-              {students.map((student) => (
-                <label key={student.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedStudents.includes(student.id)}
-                    onChange={() => handleStudentSelection(student.id)}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <div className="ml-3">
-                    <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                    <div className="text-sm text-gray-500">{student.email}</div>
-                  </div>
-                </label>
-              ))}
+              {loadingAssignments ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                </div>
+              ) : students.filter(s => !assignedStudentIds.includes(s.id)).length === 0 ? (
+                <p className="text-center text-gray-500 py-4">Todos los estudiantes ya están asignados a este curso</p>
+              ) : (
+                students.filter(s => !assignedStudentIds.includes(s.id)).map((student) => (
+                  <label key={student.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.includes(student.id)}
+                      onChange={() => handleStudentSelection(student.id)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="ml-3">
+                      <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                      <div className="text-sm text-gray-500">{student.email}</div>
+                    </div>
+                  </label>
+                ))
+              )}
             </div>
 
             <div className="flex gap-3 pt-4 mt-4 border-t">
