@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { gradesAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { 
+import {
   ArrowLeft,
-  Award, 
-  CheckCircle, 
+  Award,
+  CheckCircle,
+  XCircle,
+  X,
   Clock,
   TrendingUp,
   Target,
@@ -27,7 +29,8 @@ const StudentGrades = () => {
   const [courseDetails, setCourseDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [view, setView] = useState('overview'); // 'overview' or 'details'
+  const [view, setView] = useState('overview');
+  const [previewModal, setPreviewModal] = useState(null);
 
   useEffect(() => {
     fetchCoursesProgress();
@@ -165,6 +168,21 @@ const StudentGrades = () => {
     fetchCourseDetails(course.id);
   };
 
+  const openPreview = async (type, gradeId, title) => {
+    setPreviewModal({ type, gradeId, title, data: null, loading: true });
+    try {
+      const res = type === 'quiz'
+        ? await gradesAPI.getQuizDetail(gradeId)
+        : await gradesAPI.getWorkshopDetail(gradeId);
+      setPreviewModal(prev => prev?.gradeId === gradeId ? { ...prev, data: res.data, loading: false } : prev);
+    } catch {
+      toast.error('Error al cargar detalles de las preguntas');
+      setPreviewModal(null);
+    }
+  };
+
+  const closePreview = () => setPreviewModal(null);
+
   const handleBackToOverview = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -260,96 +278,229 @@ const StudentGrades = () => {
               </div>
             </div>
 
-            {/* Activities with Grades */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold text-gray-900">Actividades y Calificaciones</h2>
-              
-              {courseDetails.activities.map((activity, index) => (
-                <div key={activity.id} className="card">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-bold">{index + 1}</span>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{activity.title}</h3>
-                      {activity.description && (
-                        <p className="text-gray-600 mb-4">{activity.description}</p>
-                      )}
-                      
-                      {/* Quiz Grades */}
-                      {activity.quiz_grades.length > 0 && (
-                        <div className="mb-4">
-                          <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center gap-2">
-                            <Target className="h-4 w-4 text-green-600" />
-                            Evaluaciones
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {activity.quiz_grades.map((grade) => (
-                              <div key={grade.id} className="border border-gray-200 rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm font-medium text-gray-700">{grade.quiz_title}</span>
-                                  <span className={`text-sm px-2 py-1 rounded-full ${getScoreColor(grade.percentage)}`}>
-                                    {grade.percentage}%
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(grade.completed_at).toLocaleDateString('es-ES')} • Intento #{grade.attempt_number}
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  {grade.score}/{grade.max_score} puntos • Mínimo: {grade.passing_score}%
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+            {/* Quizzes Section */}
+            {(() => {
+              const allQuizGrades = courseDetails.activities.flatMap(a =>
+                a.quiz_grades.map(g => ({ ...g, activity_title: a.title }))
+              );
+              return allQuizGrades.length > 0 ? (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+                    <Target className="h-6 w-6 text-green-600" />
+                    Evaluaciones (Quizzes)
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {allQuizGrades.map((grade) => (
+                      <div key={grade.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{grade.activity_title}</p>
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-sm font-semibold text-gray-800 flex-1 mr-2">{grade.quiz_title}</h3>
+                          <span className={`text-sm px-3 py-1 rounded-full font-semibold flex-shrink-0 ${getScoreColor(grade.percentage)}`}>
+                            {grade.percentage}%
+                          </span>
                         </div>
-                      )}
-                      
-                      {/* Workshop Grades */}
-                      {activity.workshop_grades.length > 0 && (
-                        <div className="mb-4">
-                          <h4 className="text-md font-medium text-gray-800 mb-2 flex items-center gap-2">
-                            <Users className="h-4 w-4 text-purple-600" />
-                            Talleres
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {activity.workshop_grades.map((grade) => (
-                              <div key={grade.id} className="border border-gray-200 rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm font-medium text-gray-700">{grade.workshop_title}</span>
-                                  <span className={`text-sm px-2 py-1 rounded-full ${getScoreColor(grade.percentage)}`}>
-                                    {grade.percentage}%
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(grade.completed_at).toLocaleDateString('es-ES')} • Intento #{grade.attempt_number}
-                                </div>
-                                <div className="text-xs text-gray-400">
-                                  {grade.score}/{grade.max_score} puntos
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="text-xs text-gray-500 mb-3">
+                          {new Date(grade.completed_at).toLocaleDateString('es-ES')} • Intento #{grade.attempt_number} • {grade.score}/{grade.max_score} pts • Mínimo: {grade.passing_score}%
                         </div>
-                      )}
-                      
-                      {!activity.has_grades && (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
-                          <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500 text-sm">No hay calificaciones registradas</p>
-                        </div>
-                      )}
-                    </div>
+                        <button
+                          onClick={() => openPreview('quiz', grade.id, grade.quiz_title)}
+                          className="w-full text-xs font-medium text-green-600 hover:text-green-800 border border-green-200 hover:border-green-400 hover:bg-green-50 rounded-lg py-2 transition-colors"
+                        >
+                          Ver respuestas por pregunta
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              ) : null;
+            })()}
+
+            {/* Talleres Section */}
+            {(() => {
+              const allWorkshopGrades = courseDetails.activities.flatMap(a =>
+                a.workshop_grades.map(g => ({ ...g, activity_title: a.title }))
+              );
+              return allWorkshopGrades.length > 0 ? (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+                    <Users className="h-6 w-6 text-purple-600" />
+                    Talleres
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {allWorkshopGrades.map((grade) => (
+                      <div key={grade.id} className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{grade.activity_title}</p>
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-sm font-semibold text-gray-800 flex-1 mr-2">{grade.workshop_title}</h3>
+                          <span className={`text-sm px-3 py-1 rounded-full font-semibold flex-shrink-0 ${getScoreColor(grade.percentage)}`}>
+                            {grade.percentage}%
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mb-3">
+                          {new Date(grade.completed_at).toLocaleDateString('es-ES')} • Intento #{grade.attempt_number} • {grade.score}/{grade.max_score} pts
+                        </div>
+                        <button
+                          onClick={() => openPreview('workshop', grade.id, grade.workshop_title)}
+                          className="w-full text-xs font-medium text-purple-600 hover:text-purple-800 border border-purple-200 hover:border-purple-400 hover:bg-purple-50 rounded-lg py-2 transition-colors"
+                        >
+                          Ver respuestas por pregunta
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {courseDetails.activities.every(a => !a.has_grades) && (
+              <div className="card text-center py-8">
+                <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">No hay calificaciones registradas en este curso</p>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-500">No se pudieron cargar los detalles del curso</p>
           </div>
         )}
+
+      {/* Per-question preview modal */}
+      {previewModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4"
+          onClick={closePreview}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">
+                  {previewModal.type === 'quiz' ? 'Evaluación' : 'Taller'}
+                </p>
+                <h2 className="text-lg font-bold text-gray-900">{previewModal.title}</h2>
+              </div>
+              <button onClick={closePreview} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            {previewModal.loading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : previewModal.data ? (
+              <div className="p-6 space-y-4">
+                {/* Score summary */}
+                <div className={`rounded-xl p-4 text-center ${getScoreColor(previewModal.data.grade.percentage)}`}>
+                  <div className="text-4xl font-bold mb-1">{previewModal.data.grade.percentage}%</div>
+                  <div className="text-sm">
+                    {previewModal.data.grade.score}/{previewModal.data.grade.max_score} puntos
+                    {previewModal.data.grade.passing_score ? ` • Aprobación: ${previewModal.data.grade.passing_score}%` : ''}
+                  </div>
+                  <div className="text-xs mt-1 opacity-75">
+                    Intento #{previewModal.data.grade.attempt_number} • {new Date(previewModal.data.grade.completed_at).toLocaleDateString('es-ES')}
+                  </div>
+                </div>
+
+                {/* Questions */}
+                <div className="space-y-4">
+                  {previewModal.data.questions.map((q, idx) => {
+                    const isQuiz = previewModal.type === 'quiz';
+                    const optionLabels = ['A', 'B', 'C', 'D'];
+                    const options = isQuiz
+                      ? (q.options || []).map((text, i) => ({ label: optionLabels[i], text, index: i }))
+                      : optionLabels.map(l => {
+                          const opt = q.options[l];
+                          const text = opt && typeof opt === 'object' ? opt.text : opt;
+                          const image = opt && typeof opt === 'object' ? opt.image : null;
+                          return { label: l, text, image };
+                        }).filter(o => o.text || o.image);
+
+                    return (
+                      <div key={q.id} className="border border-gray-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            q.is_correct ? 'bg-green-100 text-green-700' : q.student_answer === null ? 'bg-gray-100 text-gray-500' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-800 font-medium">{q.question}</p>
+                            {q.question_image && (
+                              <img src={q.question_image} alt="Imagen de la pregunta" className="mt-2 max-h-32 rounded border border-gray-200 object-cover" />
+                            )}
+                          </div>
+                          <div className="flex-shrink-0">
+                            {q.is_correct
+                              ? <CheckCircle className="h-5 w-5 text-green-500" />
+                              : q.student_answer === null
+                                ? <Clock className="h-5 w-5 text-gray-400" />
+                                : <XCircle className="h-5 w-5 text-red-500" />
+                            }
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 ml-10">
+                          {options.map((opt) => {
+                            const isCorrect = isQuiz ? opt.index === q.correct_answer : opt.label === q.correct_answer;
+                            const isSelected = isQuiz ? opt.index === q.student_answer : opt.label === q.student_answer;
+                            return (
+                              <div key={opt.label} className={`flex items-start gap-2 px-3 py-2.5 rounded-lg text-sm border ${
+                                isCorrect && isSelected ? 'bg-green-50 border-green-400 text-green-800' :
+                                isCorrect ? 'bg-green-50 border-green-300 text-green-700' :
+                                isSelected ? 'bg-red-50 border-red-300 text-red-700' :
+                                'bg-gray-50 border-gray-200 text-gray-500'
+                              }`}>
+                                <span className="font-bold w-4 flex-shrink-0 mt-0.5">{opt.label}.</span>
+                                <span className="flex-1">
+                                  {opt.text || null}
+                                  {opt.image && (
+                                    <img src={opt.image} alt={`Opción ${opt.label}`} className="max-h-20 rounded object-cover mt-1" />
+                                  )}
+                                </span>
+                                <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+                                  {isSelected && isCorrect && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                                      <CheckCircle className="h-3 w-3" /> Tu respuesta ✓
+                                    </span>
+                                  )}
+                                  {isSelected && !isCorrect && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                                      <XCircle className="h-3 w-3" /> Tu respuesta
+                                    </span>
+                                  )}
+                                  {isCorrect && !isSelected && (
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                                      <CheckCircle className="h-3 w-3" /> Correcta
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {q.student_answer === null && (
+                          <p className="text-xs text-orange-500 ml-10 mt-2">Sin respuesta registrada</p>
+                        )}
+                        <p className="text-xs text-gray-400 ml-10 mt-2">
+                          {q.points} {q.points === 1 ? 'punto' : 'puntos'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-gray-500">No se pudieron cargar los detalles</div>
+            )}
+          </div>
+        </div>
+      )}
       </div>
     );
   }
