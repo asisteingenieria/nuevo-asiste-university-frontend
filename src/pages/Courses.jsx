@@ -426,11 +426,11 @@ const Courses = () => {
       {/* Assignment Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-96 overflow-hidden">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Asignar "{selectedCourse?.title}" a Estudiantes
             </h3>
-            
+
             {!loadingAssignments && students.filter(s => !assignedStudentIds.includes(s.id)).length > 0 && (
               <div className="flex items-center justify-between mb-3 pb-3 border-b">
                 <span className="text-sm text-gray-600">
@@ -452,7 +452,7 @@ const Courses = () => {
               </div>
             )}
 
-            <div className="space-y-3 max-h-60 overflow-y-auto">
+            <div className="space-y-3 overflow-y-auto" style={{maxHeight: '45vh'}}>
               {loadingAssignments ? (
                 <div className="flex justify-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
