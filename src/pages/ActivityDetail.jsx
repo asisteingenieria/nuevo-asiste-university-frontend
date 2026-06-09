@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { activitiesAPI, workshopsAPI, quizzesAPI, uploadAPI, contentBlocksAPI, workshopQuestionsAPI, gradesAPI, retakeGrantsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { 
+import {
   ArrowLeft,
   Plus,
   Edit2,
@@ -13,12 +13,15 @@ import {
   Video,
   BookOpen,
   CheckCircle,
+  XCircle,
   Settings,
   HelpCircle,
   MoveUp,
   MoveDown,
   RotateCcw,
-  Users
+  Users,
+  BarChart3,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -50,6 +53,12 @@ const ActivityDetail = () => {
   const [retakeWorkshopStudents, setRetakeWorkshopStudents] = useState([]);
   const [loadingWorkshopRetakeStudents, setLoadingWorkshopRetakeStudents] = useState(false);
   const [savingWorkshopGrant, setSavingWorkshopGrant] = useState(null);
+
+  // Quiz responses modal state
+  const [showQuizResponsesModal, setShowQuizResponsesModal] = useState(false);
+  const [quizResponsesData, setQuizResponsesData] = useState(null);
+  const [loadingQuizResponses, setLoadingQuizResponses] = useState(false);
+  const [selectedQuizStudent, setSelectedQuizStudent] = useState(null);
   
   // Content block form data
   const [contentBlockData, setContentBlockData] = useState({
@@ -189,6 +198,20 @@ const ActivityDetail = () => {
     } catch (error) {
       const message = error.response?.data?.message || 'Error al guardar taller';
       toast.error(message);
+    }
+  };
+
+  const openQuizResponsesModal = async (quiz) => {
+    try {
+      setLoadingQuizResponses(true);
+      setShowQuizResponsesModal(true);
+      const res = await gradesAPI.getQuizResponses(quiz.id);
+      setQuizResponsesData(res.data);
+      setSelectedQuizStudent(res.data.students[0] || null);
+    } catch (error) {
+      toast.error('Error al cargar respuestas del quiz');
+    } finally {
+      setLoadingQuizResponses(false);
     }
   };
 
@@ -797,6 +820,13 @@ const ActivityDetail = () => {
 
                         {(isAdmin() || isFormador()) && (
                           <div className="flex gap-1 ml-4 items-center">
+                            <button
+                              onClick={() => openQuizResponsesModal(quiz)}
+                              className="text-green-600 hover:text-green-800 p-1"
+                              title="Ver respuestas de estudiantes"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                            </button>
                             {quiz.max_attempts >= 2 && (
                               <button
                                 onClick={() => openRetakeModal(quiz)}
@@ -1326,6 +1356,129 @@ const ActivityDetail = () => {
                   </button>
                 </div>
               </form>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Quiz Responses Modal */}
+      {showQuizResponsesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Respuestas de Estudiantes - Quiz</h3>
+              </div>
+              <button onClick={() => { setShowQuizResponsesModal(false); setQuizResponsesData(null); setSelectedQuizStudent(null); }}>
+                <X className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+              </button>
+            </div>
+
+            {loadingQuizResponses ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+              </div>
+            ) : !quizResponsesData || quizResponsesData.students.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <p className="text-gray-500">Ningún estudiante ha presentado este quiz aún.</p>
+              </div>
+            ) : (
+              <div className="flex flex-1 overflow-hidden">
+                <div className="w-64 border-r overflow-y-auto flex-shrink-0">
+                  <div className="p-3 border-b bg-gray-50">
+                    <p className="text-xs font-medium text-gray-500 uppercase">Estudiantes ({quizResponsesData.students.length})</p>
+                  </div>
+                  {quizResponsesData.students.map(student => {
+                    const bestAttempt = student.attempts.reduce((best, a) =>
+                      a.percentage > (best?.percentage || -1) ? a : best, null);
+                    const isSelected = selectedQuizStudent?.student_id === student.student_id;
+                    return (
+                      <button
+                        key={student.student_id}
+                        onClick={() => setSelectedQuizStudent(student)}
+                        className={`w-full text-left p-3 border-b hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}
+                      >
+                        <p className="text-sm font-medium text-gray-900 truncate">{student.student_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{student.student_email}</p>
+                        {bestAttempt && (
+                          <div className={`mt-1 text-xs font-semibold ${bestAttempt.percentage >= 70 ? 'text-green-600' : 'text-red-600'}`}>
+                            {bestAttempt.percentage}% · {student.attempts.length} intento(s)
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedQuizStudent && (
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <div className="mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900">{selectedQuizStudent.student_name}</h4>
+                      <p className="text-sm text-gray-500">{selectedQuizStudent.student_email}</p>
+                    </div>
+
+                    {selectedQuizStudent.attempts.map((attempt) => (
+                      <div key={attempt.grade_id} className="mb-6">
+                        <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                          <span className="font-medium text-gray-700">Intento #{attempt.attempt_number}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-500">
+                              {new Date(attempt.completed_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className={`text-sm font-bold px-2 py-1 rounded ${attempt.percentage >= 70 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {attempt.percentage}%
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {attempt.questions.map((q, qIdx) => {
+                            const options = Array.isArray(q.options) ? q.options : [];
+                            const studentOptionText = q.student_answer !== null && options[q.student_answer] ? options[q.student_answer] : null;
+                            const correctOptionText = options[q.correct_answer] || `Opción ${q.correct_answer}`;
+                            return (
+                              <div key={q.question_id} className={`border rounded-lg p-4 ${q.is_correct ? 'border-green-200 bg-green-50' : q.student_answer !== null ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    {q.is_correct ? (
+                                      <CheckCircle className="h-5 w-5 text-green-600" />
+                                    ) : (
+                                      <XCircle className="h-5 w-5 text-red-500" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 mb-2">
+                                      <span className="text-gray-500 mr-2">P{qIdx + 1}.</span>
+                                      {q.question}
+                                    </p>
+                                    <div className="flex flex-wrap gap-3 text-sm">
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500">Respuesta del estudiante:</span>
+                                        <span className={`font-semibold px-2 py-0.5 rounded ${q.is_correct ? 'bg-green-200 text-green-800' : q.student_answer !== null ? 'bg-red-200 text-red-800' : 'bg-gray-200 text-gray-600'}`}>
+                                          {studentOptionText || (q.student_answer !== null ? `Opción ${q.student_answer}` : 'Sin responder')}
+                                        </span>
+                                      </div>
+                                      {!q.is_correct && (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-gray-500">Respuesta correcta:</span>
+                                          <span className="font-semibold px-2 py-0.5 rounded bg-green-200 text-green-800">
+                                            {correctOptionText}
+                                          </span>
+                                        </div>
+                                      )}
+                                      <span className="text-gray-400">{q.points} pts</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
