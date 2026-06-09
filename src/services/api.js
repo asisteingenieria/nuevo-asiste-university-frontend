@@ -129,6 +129,8 @@ export const gradesAPI = {
   getWorkshopDetail: (gradeId) => api.get(`/grades/workshop-detail/${gradeId}`),
   getWorkshopResponses: (workshopId) => api.get(`/grades/workshop/${workshopId}/responses`),
   getQuizResponses: (quizId) => api.get(`/grades/quiz/${quizId}/responses`),
+  recalculateWorkshop: (workshopId) => api.post(`/grades/workshop/${workshopId}/recalculate`),
+  recalculateQuiz: (quizId) => api.post(`/grades/quiz/${quizId}/recalculate`),
 };
 
 // Satisfaction API
