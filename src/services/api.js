@@ -127,6 +127,8 @@ export const gradesAPI = {
   resetAllQuizGrades: (quizId) => api.delete(`/grades/quiz/${quizId}/all`),
   getQuizDetail: (gradeId) => api.get(`/grades/quiz-detail/${gradeId}`),
   getWorkshopDetail: (gradeId) => api.get(`/grades/workshop-detail/${gradeId}`),
+  getWorkshopResponses: (workshopId) => api.get(`/grades/workshop/${workshopId}/responses`),
+  getQuizResponses: (quizId) => api.get(`/grades/quiz/${quizId}/responses`),
 };
 
 // Satisfaction API
