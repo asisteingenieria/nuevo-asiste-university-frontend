@@ -505,13 +505,9 @@ const Grades = () => {
       }
     }
     
-    // Establecer alturas de filas: encabezado más alto, filas de datos según número de preguntas
+    // Filas compactas por defecto — el usuario expande manualmente para ver el detalle
     const rowHeights = [{ hpt: 30 }];
-    grades.forEach(grade => {
-      const questions = detailMap[grade.id];
-      const lineCount = questions ? questions.length : 1;
-      rowHeights.push({ hpt: Math.max(20, lineCount * 32) });
-    });
+    for (let i = 1; i < worksheetData.length; i++) rowHeights.push({ hpt: 20 });
     worksheet['!rows'] = rowHeights;
 
     // Agregar la hoja al libro
