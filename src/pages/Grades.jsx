@@ -15,7 +15,9 @@ import {
   Award,
   X,
   Download,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -38,6 +40,10 @@ const Grades = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStudentDetails, setSelectedStudentDetails] = useState(null);
+
+  const [showAnswersModal, setShowAnswersModal] = useState(false);
+  const [answersData, setAnswersData] = useState(null);
+  const [loadingAnswers, setLoadingAnswers] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -217,6 +223,22 @@ const Grades = () => {
     } catch (error) {
       const msg = error.response?.data?.message || 'Error al resetear calificación';
       toast.error(msg);
+    }
+  };
+
+  const handleViewAnswers = async (gradeId, gradeType, title) => {
+    try {
+      setLoadingAnswers(true);
+      setShowAnswersModal(true);
+      const res = gradeType === 'quiz'
+        ? await gradesAPI.getQuizDetail(gradeId)
+        : await gradesAPI.getWorkshopDetail(gradeId);
+      setAnswersData({ ...res.data, gradeType, title });
+    } catch (error) {
+      toast.error('Error al cargar respuestas');
+      setShowAnswersModal(false);
+    } finally {
+      setLoadingAnswers(false);
     }
   };
 
@@ -760,6 +782,128 @@ const Grades = () => {
         </div>
       )}
 
+      {/* Answers Detail Modal */}
+      {showAnswersModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-60" style={{ zIndex: 60 }}>
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center gap-3 p-5 border-b">
+              <button
+                onClick={() => { setShowAnswersModal(false); setAnswersData(null); }}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <ArrowLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500 uppercase font-medium">
+                  {answersData?.gradeType === 'quiz' ? 'Quiz' : 'Taller'}
+                </p>
+                <h3 className="font-semibold text-gray-900 truncate">
+                  {answersData?.title || (answersData?.gradeType === 'quiz' ? answersData?.grade?.quiz_title : answersData?.grade?.workshop_title)}
+                </h3>
+              </div>
+              {answersData?.grade && (
+                <span className={`text-sm font-bold px-3 py-1 rounded-full ${answersData.grade.percentage >= 70 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {answersData.grade.percentage}%
+                </span>
+              )}
+              <button onClick={() => { setShowAnswersModal(false); setAnswersData(null); }}>
+                <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              {loadingAnswers ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                </div>
+              ) : answersData?.questions?.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No hay preguntas registradas.</p>
+              ) : (
+                <div className="space-y-3">
+                  {answersData?.questions?.map((q, idx) => {
+                    const isWorkshop = answersData.gradeType === 'workshop';
+                    const isCorrect = q.is_correct;
+                    const hasAnswer = isWorkshop
+                      ? q.student_answer !== null
+                      : q.student_answer !== null;
+
+                    let studentAnswerLabel = 'Sin responder';
+                    let correctAnswerLabel = '';
+
+                    if (isWorkshop) {
+                      if (q.student_answer !== null) studentAnswerLabel = `Opción ${q.student_answer}`;
+                      correctAnswerLabel = `Opción ${q.correct_answer}`;
+                    } else {
+                      const opts = Array.isArray(q.options) ? q.options : [];
+                      studentAnswerLabel = q.student_answer !== null && opts[q.student_answer]
+                        ? opts[q.student_answer]
+                        : q.student_answer !== null ? `Opción ${q.student_answer}` : 'Sin responder';
+                      correctAnswerLabel = opts[q.correct_answer] || `Opción ${q.correct_answer}`;
+                    }
+
+                    return (
+                      <div
+                        key={q.id}
+                        className={`border rounded-lg p-4 ${
+                          isCorrect
+                            ? 'border-green-200 bg-green-50'
+                            : hasAnswer
+                            ? 'border-red-200 bg-red-50'
+                            : 'border-gray-200 bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {isCorrect ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : (
+                              <XCircle className="h-5 w-5 text-red-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 mb-3">
+                              <span className="text-gray-400 font-normal mr-1">P{idx + 1}.</span>
+                              {q.question}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                              <div className={`rounded-lg px-3 py-2 ${
+                                isCorrect
+                                  ? 'bg-green-200 text-green-800'
+                                  : hasAnswer
+                                  ? 'bg-red-200 text-red-800'
+                                  : 'bg-gray-200 text-gray-600'
+                              }`}>
+                                <span className="font-medium block text-xs mb-0.5 opacity-70">Estudiante respondió:</span>
+                                {studentAnswerLabel}
+                              </div>
+                              {!isCorrect && (
+                                <div className="rounded-lg px-3 py-2 bg-green-200 text-green-800">
+                                  <span className="font-medium block text-xs mb-0.5 opacity-70">Respuesta correcta:</span>
+                                  {correctAnswerLabel}
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-2 text-xs text-gray-400">{q.points} punto(s)</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {answersData?.grade && (
+              <div className="border-t p-4 bg-gray-50 flex items-center justify-between text-sm text-gray-600">
+                <span>Puntos: <strong>{answersData.grade.score}/{answersData.grade.max_score}</strong></span>
+                <span>Intento #{answersData.grade.attempt_number}</span>
+                <span>{new Date(answersData.grade.completed_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Student Details Modal */}
       {showDetailsModal && selectedStudentDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -899,6 +1043,13 @@ const Grades = () => {
                                               {quiz.percentage >= quiz.passing_score ? 'Aprobado' : 'Reprobado'}
                                             </span>
                                           </span>
+                                          <button
+                                            onClick={() => handleViewAnswers(quiz.id, 'quiz', quiz.quiz_title)}
+                                            className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                                            title="Ver respuestas correctas e incorrectas"
+                                          >
+                                            <Eye className="h-3.5 w-3.5" />
+                                          </button>
                                           {(isAdmin() || isFormador()) && (
                                             <button
                                               onClick={() => handleResetStudentQuiz(
@@ -955,12 +1106,21 @@ const Grades = () => {
                                     <div key={workshop.id} className="bg-purple-50 rounded-lg p-4">
                                       <div className="flex justify-between items-start mb-2">
                                         <div className="text-sm font-medium text-gray-900">{workshop.quiz_title}</div>
-                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(workshop.percentage, workshop.passing_score)}`}>
-                                          {getGradeIcon(workshop.percentage, workshop.passing_score)}
-                                          <span className="ml-1">
-                                            {workshop.percentage >= workshop.passing_score ? 'Aprobado' : 'Reprobado'}
+                                        <div className="flex items-center gap-2">
+                                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(workshop.percentage, workshop.passing_score)}`}>
+                                            {getGradeIcon(workshop.percentage, workshop.passing_score)}
+                                            <span className="ml-1">
+                                              {workshop.percentage >= workshop.passing_score ? 'Aprobado' : 'Reprobado'}
+                                            </span>
                                           </span>
-                                        </span>
+                                          <button
+                                            onClick={() => handleViewAnswers(workshop.id, 'workshop', workshop.quiz_title)}
+                                            className="text-purple-600 hover:text-purple-800 p-1 rounded"
+                                            title="Ver respuestas correctas e incorrectas"
+                                          >
+                                            <Eye className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
                                       </div>
                                       <div className="text-sm text-gray-600 mb-2">
                                         {workshop.score}/{workshop.max_score} puntos ({workshop.percentage}%)

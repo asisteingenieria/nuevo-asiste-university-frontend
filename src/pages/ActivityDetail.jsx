@@ -21,7 +21,8 @@ import {
   RotateCcw,
   Users,
   BarChart3,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -198,6 +199,16 @@ const ActivityDetail = () => {
     } catch (error) {
       const message = error.response?.data?.message || 'Error al guardar taller';
       toast.error(message);
+    }
+  };
+
+  const handleRecalculateQuiz = async (quiz) => {
+    if (!window.confirm(`¿Recalcular las calificaciones de todos los estudiantes para el quiz "${quiz.title}" usando las respuestas correctas actuales?`)) return;
+    try {
+      const res = await gradesAPI.recalculateQuiz(quiz.id);
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error('Error al recalcular calificaciones del quiz');
     }
   };
 
@@ -826,6 +837,13 @@ const ActivityDetail = () => {
                               title="Ver respuestas de estudiantes"
                             >
                               <BarChart3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleRecalculateQuiz(quiz)}
+                              className="text-orange-500 hover:text-orange-700 p-1"
+                              title="Recalcular calificaciones con respuestas correctas actuales"
+                            >
+                              <RefreshCw className="h-4 w-4" />
                             </button>
                             {quiz.max_attempts >= 2 && (
                               <button

@@ -14,7 +14,8 @@ import {
   XCircle,
   X,
   Users,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -81,6 +82,16 @@ const WorkshopDetail = () => {
       toast.error('Error al cargar respuestas de estudiantes');
     } finally {
       setLoadingResponses(false);
+    }
+  };
+
+  const handleRecalculate = async () => {
+    if (!window.confirm('¿Recalcular las calificaciones de todos los estudiantes usando las respuestas correctas actuales?\n\nEsto actualizará los puntajes de todos los intentos guardados.')) return;
+    try {
+      const res = await gradesAPI.recalculateWorkshop(id);
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error('Error al recalcular calificaciones');
     }
   };
 
@@ -318,6 +329,14 @@ const WorkshopDetail = () => {
         </div>
         {(isAdmin() || isFormador()) && (
           <div className="flex gap-2">
+            <button
+              onClick={handleRecalculate}
+              className="btn-secondary flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+              title="Recalcular calificaciones con las respuestas correctas actuales"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Recalcular
+            </button>
             <button onClick={openResponsesModal} className="btn-secondary flex items-center gap-2">
               <Users className="h-5 w-5" />
               Ver Respuestas
